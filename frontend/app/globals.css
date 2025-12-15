@@ -1,26 +1,85 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html, body {
+  /* Remove default background so Aurora can shine through */
+  background-color: transparent; 
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Aurora Background Animation */
+.aurora-blob {
+  position: absolute;
+  filter: blur(40px); /* Slightly less blur */
+  opacity: 0.7; /* More visible */
+  z-index: 0; /* Should be visible behind content, above body */
+  animation: drift 20s infinite alternate;
+  border-radius: 50%; /* Make them circular */
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.aurora-1 {
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(0,0,0,0) 70%);
+  animation-duration: 25s;
+}
+
+.aurora-2 {
+  bottom: -10%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+  animation-duration: 30s;
+  animation-direction: alternate-reverse;
+}
+
+.aurora-3 {
+  top: 40%;
+  left: 40%;
+  width: 40vw;
+  height: 40vw;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(0,0,0,0) 70%);
+  animation-duration: 22s;
+}
+
+@keyframes drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 20px) scale(1.1); }
+  100% { transform: translate(-20px, 40px) scale(0.9); }
+}
+
+/* Log Animations */
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.log-entry {
+    animation: slideIn 0.15s ease-out forwards;
+}
+
+/* Scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent; 
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #334155; 
+  border-radius: 10px;
+  border: 2px solid #020617; /* Padding effect */
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #475569; 
 }

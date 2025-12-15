@@ -92,6 +92,19 @@ io.on('connection', (socket) => {
         socket.on('join_session', (sessionId) => {
             console.log(`🖥️ Frontend joined session: ${sessionId}`);
             socket.join(sessionId);
+
+            // Check if Agent is already in this room
+            const room = io.sockets.adapter.rooms.get(sessionId);
+            if (room) {
+                for (const clientId of room) {
+                    const clientSocket = io.sockets.sockets.get(clientId);
+                    if (clientSocket && clientSocket.handshake.auth.type === 'agent') {
+                        // Found an agent! Tell the frontend.
+                        socket.emit('agent_status', { status: 'online' });
+                        break;
+                    }
+                }
+            }
         });
 
         // Frontend sends command -> We relay to Agent in the room

@@ -60,3 +60,11 @@ pm2 stop n8n-manager
 Upewnij się, że w formularzu podajesz:
 *   **Host:** `127.0.0.1` (dla połączeń lokalnych, jeśli aplikacja stoi na tym samym serwerze co n8n)
 *   **Port:** `22`
+
+## Skorzystaj z Mikrusa z reflinkiem!
+
+Jeśli jeszcze nie masz swojego serwera Mikrus, możesz go nabyć, korzystając z mojego linku partnerskiego:
+
+**Reflink:** [https://mikr.us/?r=pavvel](https://mikr.us/?r=pavvel)
+
+**Korzyści dla Ciebie:** Osoba, która skorzysta z linka i zarejestruje się/zakupi usługę, otrzymuje **1 miesiąc usługi gratis!** To świetna okazja, żeby rozpocząć swoją przygodę z n8n bez dodatkowych kosztów początkowych.
