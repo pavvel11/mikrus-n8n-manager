@@ -100,7 +100,7 @@ const COMMANDS = {
     },
     'FIX_DOCKER': {
         cmd: 'bash',
-        args: ['-c', 'echo "Restarting Docker Daemon..."; systemctl restart docker; sleep 5; echo "Killing containers..."; docker kill n8n || true; docker kill watchtower_n8n || true; echo "Removing containers..."; docker rm -f n8n || true; docker rm -f watchtower_n8n || true; echo "Removing images..."; docker rmi -f n8nio/n8n:latest containrrr/watchtower || true; docker system prune -f; echo "Fixing permissions..."; chown -R 1000:1000 /root/.n8n /root/.pg_n8n || true']
+        args: ['-c', 'echo "Restarting Docker Daemon..."; systemctl restart docker; sleep 5; echo "Killing containers..."; docker kill n8n || true; docker kill watchtower_n8n || true; echo "Removing containers..."; docker rm -f n8n || true; docker rm -f watchtower_n8n || true; echo "Removing images..."; docker rmi -f n8nio/n8n:latest containrrr/watchtower || true; docker system prune -f; echo "Fixing permissions..."; chown -R 1000:1000 /root/.n8n || true; chown -R 1000:1000 /root/.pg_n8n || true']
     },
     'GET_BACKUP_FILE': {
         special: true

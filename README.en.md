@@ -3,7 +3,7 @@
 > **The easiest way to install and manage n8n on Mikrus VPS.**  
 > *Built by a Lazy Engineer for Lazy Engineers.*
 
-![Mikrus n8n Manager UI](https://github.com/TwojUser/mikrus-n8n-manager/assets/placeholder-image.png)
+![Mikrus n8n Manager UI](https://github.com/pavvel11/mikrus-n8n-manager/assets/placeholder-image.png)
 
 ## 📖 About
 
@@ -46,7 +46,7 @@ Mikrus servers often run older Linux distributions. Installing modern Node.js (r
 
 ```bash
 # Clone the repository
-git clone https://github.com/TwojUser/mikrus-n8n-manager.git
+git clone https://github.com/pavvel11/mikrus-n8n-manager.git
 cd mikrus-n8n-manager
 
 # Install dependencies & Build

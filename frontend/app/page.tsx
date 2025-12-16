@@ -10,7 +10,7 @@ import OfferPlaceholder from './OfferPlaceholder';
 
 // Configuration
 const BACKEND_URL = ''; // Relative path for production
-const GITHUB_URL = 'https://github.com/TwojUser/mikrus-n8n-manager'; 
+const GITHUB_URL = 'https://github.com/pavvel11/mikrus-n8n-manager'; 
 const MIKRUS_REFLINK = 'https://mikr.us/?r=pavvel';
 
 type LogEntry = {
@@ -43,6 +43,7 @@ export default function Home() {
   const [serverMem, setServerMem] = useState<number>(0);
   const [isAgentReadyForActions, setIsAgentReadyForActions] = useState(false);
   const [showTerminalGuide, setShowTerminalGuide] = useState(false);
+  const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
   
   // New States for Enhanced UX
   const [dbType, setDbType] = useState<'sqlite' | 'postgres'>('sqlite');
@@ -64,6 +65,7 @@ export default function Home() {
   const [authMethod, setAuthMethod] = useState<'password' | 'key'>('password');
 
   const terminalRef = useRef<HTMLDivElement>(null);
+  const lastCommandRef = useRef<string>('');
 
   // Helper to strip ANSI codes
   const stripAnsi = (str: string) => str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
@@ -165,10 +167,18 @@ export default function Home() {
       setIsCommandRunning(false);
       addLog('info', `Process finished with exit code ${data.exitCode}`);
       
-      if (data.exitCode === 0) {
+      const quietCommands = ['LOGS_N8N', 'STATUS', 'GET_BACKUP_FILE'];
+      if (data.exitCode === 0 && !quietCommands.includes(lastCommandRef.current)) {
           triggerMiniConfetti();
-          if (n8nUrl) setIsInstalled(true);
       }
+      
+      if (lastCommandRef.current === 'FIX_DOCKER' && data.exitCode === 0) {
+          addLog('info', '✅ Hard Reset zakończony. Kliknij teraz "Przeinstaluj / Napraw", aby uruchomić n8n.');
+          setIsInstalled(true); 
+          setShowReinstallConfirm(true); 
+      }
+
+      if (data.exitCode === 0 && n8nUrl) setIsInstalled(true);
     });
 
     const pingInterval = setInterval(() => {
@@ -183,7 +193,7 @@ export default function Home() {
       clearInterval(pingInterval);
       newSocket.disconnect();
     };
-  }, []); // Fixed: Empty dependency array to prevent socket reconnection loops
+  }, []);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -273,7 +283,7 @@ export default function Home() {
     if (!socket || isCommandRunning) return;
     
     setIsCommandRunning(true);
-    // Removed setN8nUrl(null) to keep the dashboard button visible
+    lastCommandRef.current = cmd;
     addLog('info', `> Executing command: ${cmd}`);
     socket.emit('send_command', { sessionId, command: cmd });
   };
@@ -347,7 +357,7 @@ export default function Home() {
                 <div className="mb-6 bg-purple-950/20 border border-purple-500/20 rounded-xl p-4 text-center">
                     <h3 className="text-purple-400 font-bold text-sm mb-2">Nie masz jeszcze serwera?</h3>
                     <p className="text-xs text-slate-300 mb-3 leading-relaxed opacity-90">
-                        Mikrus.pl to najtańsza opcja na własne n8n (bez limitów workflow!).
+                        Mikrus.pl to najtańsza opcja na własne n8n (bez limitów!). Instalacja zajmuje 3 minuty i z tym narzędziem jest bajecznie prosta.
                     </p>
                     <ul className="text-[10px] text-slate-400 mb-4 space-y-1 text-left inline-block">
                         <li className="flex gap-2"><span>🌱</span> <strong>Mikrus 2.1</strong> (1GB RAM) - Start (SQLite)</li>
@@ -659,7 +669,7 @@ export default function Home() {
                             Jeśli n8n nie wstaje (status Restarting), użyj tej opcji, aby <strong>wymusić usunięcie kontenerów i obrazów</strong>. Po tym musisz kliknąć "Przeinstaluj / Napraw" w panelu wyżej.
                         </p>
                         <button 
-                            onClick={() => sendCommand('FIX_DOCKER')}
+                            onClick={() => setShowHardResetConfirm(true)}
                             className="interactive-target bg-orange-900/20 border border-orange-500/30 text-orange-400 hover:bg-orange-900/40 px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
                         >
                             🧹 Wyczyść Docker (Hard Reset)
@@ -690,6 +700,46 @@ export default function Home() {
       
         {showSnake && <SnakeGame onClose={() => setShowSnake(false)} />}
         {showTerminalGuide && <TerminalGuide onClose={() => setShowTerminalGuide(false)} />}
+        
+        {/* Hard Reset Confirmation Modal */}
+        {showHardResetConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/80 animate-in fade-in duration-200">
+                <div className="bg-[#0f172a] border border-orange-500/50 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+                    <div className="p-6">
+                        <h3 className="text-xl font-bold text-orange-500 flex items-center gap-2 mb-4">
+                            <span>⚠️</span> Czy na pewno?
+                        </h3>
+                        <p className="text-sm text-slate-300 mb-4">
+                            Zamierzasz wykonać <strong>Hard Reset</strong> środowiska Docker. Ta operacja:
+                        </p>
+                        <ul className="list-disc list-inside space-y-2 text-xs text-slate-400 mb-6 bg-black/20 p-4 rounded-lg border border-slate-800">
+                            <li>🛑 Zrestartuje usługę Docker (chwilowy downtime).</li>
+                            <li>🗑️ Usunie kontenery <code>n8n</code> i <code>watchtower</code>.</li>
+                            <li>📦 Usunie pobrane obrazy (wymusi świeże pobranie).</li>
+                            <li>🔧 Naprawi uprawnienia do plików.</li>
+                            <li className="text-emerald-400 font-bold">✅ Twoje workflowy i baza danych są bezpieczne (w osobnym katalogu).</li>
+                        </ul>
+                        <div className="flex gap-3 justify-end">
+                            <button 
+                                onClick={() => setShowHardResetConfirm(false)}
+                                className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                            >
+                                Anuluj
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    sendCommand('FIX_DOCKER');
+                                    setShowHardResetConfirm(false);
+                                }}
+                                className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-lg text-xs font-bold shadow-lg transition-all flex items-center gap-2"
+                            >
+                                🔥 Wykonaj Hard Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );

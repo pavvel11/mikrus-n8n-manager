@@ -5,7 +5,7 @@
 
 [![English Version](https://img.shields.io/badge/lang-English-red.svg)](README.en.md)
 
-![Mikrus n8n Manager UI](https://github.com/TwojUser/mikrus-n8n-manager/assets/placeholder-image.png)
+![Mikrus n8n Manager UI](https://github.com/pavvel11/mikrus-n8n-manager/assets/placeholder-image.png)
 
 ## 📖 O projekcie
 
@@ -50,7 +50,7 @@ Jeśli chcesz uruchomić Managera u siebie:
 
 ```bash
 # Sklonuj repozytorium
-git clone https://github.com/TwojUser/mikrus-n8n-manager.git
+git clone https://github.com/pavvel11/mikrus-n8n-manager.git
 cd mikrus-n8n-manager
 
 # Zainstaluj zależności i zbuduj
