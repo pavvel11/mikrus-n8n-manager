@@ -5,6 +5,8 @@ import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import confetti from 'canvas-confetti';
 import SnakeGame from './Snake';
+import TerminalGuide from './TerminalGuide';
+import OfferPlaceholder from './OfferPlaceholder';
 
 // Configuration
 const BACKEND_URL = ''; // Relative path for production
@@ -40,6 +42,7 @@ export default function Home() {
   const [systemShock, setSystemShock] = useState(false);
   const [serverMem, setServerMem] = useState<number>(0);
   const [isAgentReadyForActions, setIsAgentReadyForActions] = useState(false);
+  const [showTerminalGuide, setShowTerminalGuide] = useState(false);
   
   // New States for Enhanced UX
   const [dbType, setDbType] = useState<'sqlite' | 'postgres'>('sqlite');
@@ -89,14 +92,11 @@ export default function Home() {
     });
 
     newSocket.on('agent_status', (data: { status: 'online' | 'offline', isInstalled?: boolean, totalMemMb?: number }) => {
-      if (data.status === 'online' && agentStatus !== 'online') {
-          triggerSuccessEffect();
-      }
       setAgentStatus(data.status);
       if (data.isInstalled !== undefined) {
           setIsInstalled(data.isInstalled);
       }
-      if (data.totalMemMb !== undefined) {
+      if (data.totalMemMb) {
           setServerMem(data.totalMemMb);
       }
       // Only set ready for actions when we have full info
@@ -183,7 +183,7 @@ export default function Home() {
       clearInterval(pingInterval);
       newSocket.disconnect();
     };
-  }, [agentStatus, isInstalled, n8nUrl]);
+  }, []); // Fixed: Empty dependency array to prevent socket reconnection loops
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -273,7 +273,7 @@ export default function Home() {
     if (!socket || isCommandRunning) return;
     
     setIsCommandRunning(true);
-    setN8nUrl(null); // Reset URL on new command start
+    // Removed setN8nUrl(null) to keep the dashboard button visible
     addLog('info', `> Executing command: ${cmd}`);
     socket.emit('send_command', { sessionId, command: cmd });
   };
@@ -331,13 +331,51 @@ export default function Home() {
             {agentStatus === 'offline' && (
                 <div className="bg-slate-900/60 p-6 rounded-2xl border border-slate-800/60 shadow-xl backdrop-blur-xl animate-in zoom-in-95 duration-300">
                 
+                {/* EXPERT MODE RECOMMENDATION */}
+                <div className="mb-6 bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-4 text-center relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 text-4xl transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">💻</div>
+                    <h3 className="text-emerald-400 font-bold text-sm mb-2">Jesteś Power Userem?</h3>
+                    <p className="text-xs text-slate-300 mb-3 leading-relaxed opacity-90">
+                        Ta aplikacja to tylko nakładka (helper). <strong>Terminal daje pełną kontrolę i jest zalecany.</strong>
+                    </p>
+                    <button onClick={() => setShowTerminalGuide(true)} className="interactive-target inline-block bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-emerald-500/20">
+                        🎓 Otwórz Przewodnik SSH
+                    </button>
+                </div>
+
+                {/* PROMO BLOCK */}
+                <div className="mb-6 bg-purple-950/20 border border-purple-500/20 rounded-xl p-4 text-center">
+                    <h3 className="text-purple-400 font-bold text-sm mb-2">Nie masz jeszcze serwera?</h3>
+                    <p className="text-xs text-slate-300 mb-3 leading-relaxed opacity-90">
+                        Mikrus.pl to najtańsza opcja na własne n8n (bez limitów!). Instalacja zajmuje 3 minuty i z tym narzędziem jest bajecznie prosta.
+                    </p>
+                    <ul className="text-[10px] text-slate-400 mb-4 space-y-1 text-left inline-block">
+                        <li className="flex gap-2"><span>🌱</span> <strong>Mikrus 2.1</strong> (1GB RAM) - Start (SQLite)</li>
+                        <li className="flex gap-2"><span>🚀</span> <strong>Mikrus 3.0+</strong> (2GB+ RAM) - Produkcja (Postgres)</li>
+                    </ul>
+                    <a href={MIKRUS_REFLINK} target="_blank" className="interactive-target block bg-purple-600 hover:bg-purple-500 text-white text-xs px-4 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-purple-500/20">
+                        🎁 Odbierz Mikrusa + 1 miesiąc gratis
+                    </a>
+
+                    <details className="mt-4 text-left group">
+                        <summary className="text-[10px] text-slate-500 hover:text-white transition-colors cursor-pointer list-none flex items-center gap-1 font-bold">
+                            <span className="text-emerald-400 group-hover:text-emerald-300">?</span> Jak odebrać 1 miesiąc gratis?
+                        </summary>
+                        <div className="text-[10px] text-slate-400 mt-2 ml-4 space-y-1">
+                            <p>To prosty mechanizm: kliknij w powyższy link (zawiera on specjalny identyfikator - tzw. reflink).</p>
+                            <p>Następnie wybierz swoją ofertę Mikrusa (dla n8n polecamy 2.1+, a najlepiej 3.0 lub 4.0).</p>
+                            <p>Miesiąc gratis zostanie <strong>automatycznie doliczony</strong> do Twojego zamówienia. Proste!</p>
+                        </div>
+                    </details>
+                </div>
+
                 <div className="mb-6 bg-gradient-to-r from-emerald-950/30 to-slate-900/30 border border-emerald-500/10 rounded-xl p-4">
                     <h3 className="text-emerald-400 font-bold text-sm flex items-center gap-2 mb-2">
                     <span className="text-lg">🛡️</span> Bezpieczeństwo
                     </h3>
                     <ul className="text-xs text-slate-400 space-y-2 list-none">
-                    <li className="flex gap-2 items-center"><div className="w-1 h-1 rounded-full bg-emerald-500"></div> Hasło w RAM tylko przez 5 sekund.</li>
-                    <li className="flex gap-2 items-center"><div className="w-1 h-1 rounded-full bg-emerald-500"></div> Połączenie SSH jest jednorazowe.</li>
+                    <li className="flex gap-2 items-start"><div className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></div> <span>Twoje hasło <strong>nie jest nigdzie zapisywane</strong>. Używamy go tylko raz, a potem natychmiast zapominamy.</span></li>
+                    <li className="flex gap-2 items-center"><div className="w-1 h-1 rounded-full bg-emerald-500 flex-shrink-0"></div> Połączenie jest szyfrowane i jednorazowe.</li>
                     </ul>
                 </div>
 
@@ -506,6 +544,8 @@ export default function Home() {
                         <div className="h-px bg-slate-800 my-2"></div>
                         <ActionButton icon="🔄" title="Restart Kontenera" onClick={() => sendCommand('RESTART')} variant="danger" />
                     </div>
+
+                    {isInstalled && <OfferPlaceholder onOpenGuide={() => setShowTerminalGuide(true)} />}
                 </div>
             )}
             </div>
@@ -554,17 +594,27 @@ export default function Home() {
 
         </main>
 
+        {/* --- TERMINAL GUIDE BUTTON --- */}
+        <div className="max-w-4xl mx-auto px-4 mt-8 mb-4 text-center">
+            <button onClick={() => setShowTerminalGuide(true)} className="interactive-target mt-8 mx-auto bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border border-slate-700 hover:border-emerald-500/50 px-6 py-3 rounded-full text-xs font-bold transition-all shadow-lg flex items-center gap-2 group hover:shadow-emerald-900/20 hover:-translate-y-0.5">
+                <span className="text-lg">🎓</span> 
+                <span>Jak to zrobić w Terminalu? (Dla ambitnych)</span>
+                <span className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300">→</span>
+            </button>
+        </div>
+
         {/* --- TROUBLESHOOTING FOOTER --- */}
-        <div className="max-w-4xl mx-auto mt-12 px-4 mb-4">
-            <details className="group bg-slate-900/40 border border-slate-800/60 rounded-xl overflow-hidden transition-all duration-300 hover:bg-slate-900/60">
-                <summary className="flex items-center justify-between p-4 cursor-pointer select-none text-xs uppercase tracking-widest font-bold text-slate-500 hover:text-emerald-400 transition-colors">
-                    <div className="flex items-center gap-2">
-                        <span>⚠️ Masz problemy? Przeczytaj instrukcję i Troubleshooting</span>
+        <div className="max-w-4xl mx-auto px-4 mb-4">
+            <details className="group bg-slate-800/80 border border-slate-700 rounded-xl overflow-hidden transition-all duration-300 hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/50">
+                <summary className="flex items-center justify-between p-4 cursor-pointer select-none text-xs uppercase tracking-widest font-bold text-slate-200 hover:text-white transition-colors bg-white/5 group-open:bg-white/10">
+                    <div className="flex items-center gap-3">
+                        <span className="text-lg">⚠️</span>
+                        <span>Masz problemy? Przeczytaj instrukcję i Troubleshooting</span>
                     </div>
-                    <span className="transform transition-transform group-open:rotate-180">▼</span>
+                    <span className="transform transition-transform group-open:rotate-180 opacity-50">▼</span>
                 </summary>
                 
-                <div className="p-6 border-t border-slate-800/60 text-slate-300 space-y-6 text-sm bg-black/20 animate-in slide-in-from-top-2">
+                <div className="p-6 border-t border-slate-700 text-slate-300 space-y-6 text-sm bg-black/20 animate-in slide-in-from-top-2">
                     
                     <div>
                         <h4 className="text-emerald-400 font-bold mb-2 flex items-center gap-2">1. Jak się połączyć?</h4>
@@ -575,6 +625,9 @@ export default function Home() {
                             <li><strong>Login:</strong> Zazwyczaj <code>root</code>.</li>
                             <li><strong>Hasło:</strong> Twoje hasło do SSH (nie do panelu Mikrusa!).</li>
                         </ul>
+                        <p className="mt-2 text-[10px] text-emerald-500/80">
+                            💡 Wskazówka: Po instalacji otrzymasz darmową domenę <code>*.wykr.es</code> z automatycznym certyfikatem SSL.
+                        </p>
                     </div>
 
                     <div>
@@ -594,7 +647,7 @@ export default function Home() {
                         </p>
                         <button 
                             onClick={() => sendCommand('FIX_DOCKER')}
-                            className="bg-orange-900/20 border border-orange-500/30 text-orange-400 hover:bg-orange-900/40 px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
+                            className="interactive-target bg-orange-900/20 border border-orange-500/30 text-orange-400 hover:bg-orange-900/40 px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
                         >
                             🧹 Wyczyść Docker (Hard Reset)
                         </button>
@@ -617,18 +670,18 @@ export default function Home() {
             </details>
         </div>
 
-        <footer className="text-center text-slate-600/60 text-[10px] uppercase tracking-widest mt-8 pb-8">
-            <p>Bezpieczny installer n8n dla Mikrus.pl • Created by Lazy Engineer</p>
-            <p className="mt-2 text-emerald-500/80 hover:text-emerald-400 transition-colors"><a href={MIKRUS_REFLINK} target="_blank" className="interactive-target">Skorzystaj z reflinku Mikrus.pl i zyskaj 1 miesiąc gratis!</a></p>
+        <footer className="text-center text-slate-500 text-[10px] uppercase tracking-widest mt-12 pb-12">
+            <p className="opacity-70">Bezpieczny installer n8n dla Mikrus.pl • Created by Lazy Engineer</p>
+            <p className="mt-2 text-emerald-500 hover:text-emerald-400 transition-colors font-bold"><a href={MIKRUS_REFLINK} target="_blank" className="interactive-target">Skorzystaj z reflinku Mikrus.pl i zyskaj 1 miesiąc gratis!</a></p>
         </footer>
       
         {showSnake && <SnakeGame onClose={() => setShowSnake(false)} />}
+        {showTerminalGuide && <TerminalGuide onClose={() => setShowTerminalGuide(false)} />}
       </div>
     </div>
   );
 }
 
-// ... (Rest of components: CustomCursor, LogLine, ActionButton remain unchanged) ...
 function CustomCursor() {
     const cursorRef = useRef<HTMLDivElement>(null);
     const [hovered, setHovered] = useState(false);
