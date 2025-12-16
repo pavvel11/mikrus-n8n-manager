@@ -103,7 +103,7 @@ A: Nie. Aplikacja aktywnie blokuje tę opcję, aby uniknąć awarii serwera (OOM
 
 ## 📜 Licencja
 
-MIT License. Stworzone przez **Lazy Engineer**.
+MIT License. Stworzone przez **Lazy Engineer**. Vibecoded with Gemini ♊.
 
-*Disclaimer: To jest projekt społeczności. Jako, że jest to nowe narzędzie, jego użycie pozwala na proste i szybkie zarządzanie n8n, a wszelkie błędy będą na bieżąco usuwane.
+*Disclaimer: To jest projekt społeczności. Jako, że jest jest to nowe narzędzie, jego użycie pozwala na proste i szybkie zarządzanie n8n, a wszelkie błędy będą na bieżąco usuwane.
 *

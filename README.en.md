@@ -101,7 +101,7 @@ A: No. The application actively prevents this to avoid crashing your server due 
 
 ## 📜 License
 
-MIT License. Created by **Lazy Engineer**.
+MIT License. Created by **Lazy Engineer**. Vibecoded with Gemini ♊.
 
 *Disclaimer: This is a community project. As this is a new tool, its use allows for simple and fast n8n management, and any errors will be corrected on an ongoing basis.
 *
