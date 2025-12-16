@@ -19,7 +19,7 @@ Uruchamianie n8n na kontenerach LXC z ograniczonymi zasobami (jak Mikrus) bywa w
 *   **Połączenie Zero-Config:** Łączysz się używając danych z maila od Mikrusa. Nie musisz konfigurować nic w terminalu.
 *   **Portable Node.js:** Wgrywa własne, odizolowane środowisko Node.js na serwer, omijając problemy z menedżerami pakietów (`apt`/`apk`) na starszych systemach.
 *   **Podgląd na żywo:** Widzisz logi z serwera w czasie rzeczywistym przez WebSocket (wygląda jak terminal, ale ładniej).
-*   **Bezpieczeństwo:** Twoje hasło/klucz jest w pamięci RAM tylko przez 5 sekund podczas nawiązywania połączenia. Potem jest kasowane. Agent działa jako usługa Systemd.
+*   **Bezpieczeństwo & Własność:** Twoje hasło/klucz prywatny jest używane tylko raz podczas wstępnego połączenia SSH, a następnie natychmiast usuwane z pamięci. Po połączeniu możesz (i zalecamy!) zmienić hasło do serwera za pomocą komendy `passwd` w terminalu. Agent działa jako usługa Systemd.
 *   **Disaster Recovery:** Przycisk "Hard Reset" (Opcja Nuklearna) do naprawy zablokowanych kontenerów Docker i błędów uprawnień.
 *   **Backup Manager:** Rób i pobieraj backupy swoich workflowów n8n bezpośrednio z przeglądarki.
 
@@ -42,6 +42,7 @@ Serwery Mikrusa często działają na różnych dystrybucjach Linuxa. Instalacja
 
 ### Wymagania
 *   Serwer VPS na [Mikrus.pl](https://mikr.us/?r=pavvel) (zalecana wersja 2.1 lub wyższa).
+    *   🎁 **[Kliknij tutaj, aby odebrać 1 miesiąc GRATIS przy zakupie!](https://mikr.us/?r=pavvel)** (Wybierz ofertę 2.1+, 3.0 lub 3.5).
 *   Dane do SSH (Host, Port, Login, Hasło) - znajdziesz je w mailu powitalnym.
 
 ### Uruchomienie lokalne (Docker)
@@ -68,7 +69,7 @@ Otwórz `http://localhost:3001` w przeglądarce.
 
 ## 🛡️ Bezpieczeństwo
 
-*   **Hot Potato Credentials:** Twoje hasło/klucz prywatny jest trzymane w RAM tylko podczas wstępnego handshake'u SSH. Po wgraniu Agenta, dane są czyszczone.
+*   **Hot Potato Credentials:** Twoje hasło/klucz prywatny jest trzymane w RAM tylko podczas wstępnego handshake'u SSH. Potem, po wgraniu Agenta, dane są czyszczone. Agent działa jako usługa Systemd.
 *   **Whitelist Komend:** Agent akceptuje tylko ścisłą listę komend (`INSTALL`, `UPDATE`, `BACKUP`, `RESTART`, `FIX_DOCKER`). Wykonanie dowolnego kodu jest zablokowane.
 *   **Standard SSH:** Cała początkowa komunikacja odbywa się przez standardowe, szyfrowane kanały SSH.
 

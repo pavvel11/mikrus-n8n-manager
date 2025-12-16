@@ -19,7 +19,7 @@ Running n8n on low-resource LXC containers (like Mikrus) can be tricky due to de
 *   **Zero-Config Connection:** Connects via SSH using credentials from your Mikrus email. No manual terminal setup required.
 *   **Portable Agent Architecture:** Injects a self-contained Node.js environment (Portable Node) to the server, bypassing system package managers (`apt`/`apk`) failures.
 *   **Real-time Feedback:** See live logs from your server via WebSocket.
-*   **Safety First:** Passwords are used only once for the SSH handshake and are never stored. The agent runs as a transient or Systemd service.
+*   **Safety & Ownership:** Your password/private key is used only once during the initial SSH connection and then immediately wiped from memory. After connecting, we recommend changing your server password using the `passwd` command in the terminal. The agent runs as a Systemd service.
 *   **Disaster Recovery:** Includes a "Hard Reset" (Nuclear Option) to unfreeze stuck Docker containers and fix permission errors automatically.
 *   **Backup Manager:** Create and download backups of your n8n workflows/credentials directly from the browser.
 
@@ -42,6 +42,7 @@ Mikrus servers often run older Linux distributions. Installing modern Node.js (r
 
 ### Prerequisites
 *   A VPS at [Mikrus.pl](https://mikr.us/?r=pavvel) (v2.1 or higher recommended).
+    *   🎁 **[Click here to get 1 month FREE with your purchase!](https://mikr.us/?r=pavvel)** (Choose offer 2.1+, 3.0 or 3.5).
 *   Your SSH credentials (Host, Port, User, Password).
 
 ### Running Locally (Docker)
@@ -66,7 +67,7 @@ Open `http://localhost:3001` in your browser.
 
 ## 🛡️ Security
 
-*   **Hot Potato Credentials:** Your password/private key is held in RAM only during the initial SSH handshake. Once the Agent is deployed, the credentials are wiped.
+*   **Hot Potato Credentials:** Your password/private key is held in RAM only during the initial SSH handshake. Once the Agent is deployed, the credentials are wiped. The agent runs as a Systemd service.
 *   **Authorized Commands Only:** The Agent accepts only a strict whitelist of commands (`INSTALL`, `UPDATE`, `BACKUP`, `RESTART`, `FIX_DOCKER`). Arbitrary code execution is blocked.
 *   **Standard SSH:** All initial communication happens over standard, encrypted SSH channels.
 
