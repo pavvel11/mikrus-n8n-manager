@@ -5,11 +5,11 @@
 
 [![English Version](https://img.shields.io/badge/lang-English-red.svg)](README.en.md)
 
-![Mikrus n8n Manager UI](https://github.com/pavvel11/mikrus-n8n-manager/assets/placeholder-image.png)
-
 ## 📖 O projekcie
 
 **Mikrus n8n Manager** to nowoczesne narzędzie z interfejsem graficznym (GUI), które upraszcza instalację i obsługę [n8n](https://n8n.io) na serwerach VPS [Mikrus.pl](https://mikr.us).
+
+**Zobacz działającą aplikację tutaj:** [https://manager.cytr.us/](https://manager.cytr.us/)
 
 Uruchamianie n8n na kontenerach LXC z ograniczonymi zasobami (jak Mikrus) bywa wyzwaniem przez zależności systemowe (glibc), limity pamięci i pętle restartów Dockera. To narzędzie automatyzuje obsługę wszystkich tych problemów.
 

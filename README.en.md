@@ -3,7 +3,9 @@
 > **The easiest way to install and manage n8n on Mikrus VPS.**  
 > *Built by a Lazy Engineer for Lazy Engineers.*
 
-![Mikrus n8n Manager UI](https://github.com/pavvel11/mikrus-n8n-manager/assets/placeholder-image.png)
+> *Built by a Lazy Engineer for Lazy Engineers.*
+
+**See the live application here:** [https://manager.cytr.us/](https://manager.cytr.us/)
 
 ## 📖 About
 
