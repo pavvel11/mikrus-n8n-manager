@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, MouseEvent } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
+import confetti from 'canvas-confetti';
 
 // Configuration
 const BACKEND_URL = ''; // Relative path for production
@@ -16,14 +17,31 @@ type LogEntry = {
   timestamp: number;
 };
 
+const LOADING_STEPS = [
+    "📡 Resolving Host...",
+    "🔐 Negotiating Handshake...",
+    "🔑 Verifying Credentials...",
+    "💉 Injecting Payload...",
+    "🚀 Escalating Privileges...",
+    "⚡ Starting Agent..."
+];
+
 export default function Home() {
   const [sessionId, setSessionId] = useState<string>('');
   const [socket, setSocket] = useState<Socket | null>(null);
   const [agentStatus, setAgentStatus] = useState<'offline' | 'online'>('offline');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [installStatus, setInstallStatus] = useState<string>('');
   const [showTechDetails, setShowTechDetails] = useState(false);
   const [ping, setPing] = useState<number>(0);
+  const [systemShock, setSystemShock] = useState(false);
+  
+  // New States for Enhanced UX
+  const [dbType, setDbType] = useState<'sqlite' | 'postgres'>('sqlite');
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showReinstallConfirm, setShowReinstallConfirm] = useState(false);
   
   // Form State
   const [host, setHost] = useState('');
@@ -55,9 +73,20 @@ export default function Home() {
       newSocket.emit('join_session', sid);
     });
 
-    newSocket.on('agent_status', (data: { status: 'online' | 'offline' }) => {
+    newSocket.on('agent_status', (data: { status: 'online' | 'offline', isInstalled?: boolean }) => {
+      if (data.status === 'online' && agentStatus !== 'online') {
+          triggerSuccessEffect();
+      }
       setAgentStatus(data.status);
-      addLog('info', `Agent jest teraz ${data.status.toUpperCase()}`);
+      if (data.isInstalled !== undefined) {
+          setIsInstalled(data.isInstalled);
+      }
+      addLog('info', `STATUS UPDATE: Agent is ${data.status.toUpperCase()}`);
+    });
+
+    newSocket.on('install_progress', (data: { message: string }) => {
+        setInstallStatus(data.message);
+        addLog('info', `[INSTALL] ${data.message}`);
     });
 
     newSocket.on('command_output', (data: { type: string; data: string }) => {
@@ -65,7 +94,10 @@ export default function Home() {
     });
     
     newSocket.on('command_done', (data: { exitCode: number }) => {
-      addLog('info', `Komenda zakończona kodem wyjścia ${data.exitCode}`);
+      addLog('info', `Process finished with exit code ${data.exitCode}`);
+      if (data.exitCode === 0) {
+          triggerMiniConfetti();
+      }
     });
 
     const pingInterval = setInterval(() => {
@@ -80,13 +112,48 @@ export default function Home() {
       clearInterval(pingInterval);
       newSocket.disconnect();
     };
-  }, []);
+  }, [agentStatus]);
 
   useEffect(() => {
     if (terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [logs]);
+
+  useEffect(() => {
+      if (loading) {
+          const interval = setInterval(() => {
+              setLoadingStep((prev) => (prev + 1) % LOADING_STEPS.length);
+          }, 800);
+          return () => clearInterval(interval);
+      } else {
+          setLoadingStep(0);
+          setInstallStatus('');
+      }
+  }, [loading]);
+
+  const triggerSuccessEffect = () => {
+      setSystemShock(true);
+      setTimeout(() => setSystemShock(false), 500);
+      
+      confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#10b981', '#34d399', '#059669', '#ffffff'],
+          disableForReducedMotion: true
+      });
+  };
+
+  const triggerMiniConfetti = () => {
+      confetti({
+          particleCount: 40,
+          spread: 60,
+          origin: { y: 0.8 },
+          scalar: 0.7,
+          colors: ['#10b981', '#ffffff']
+      });
+  };
 
   const addLog = (type: LogEntry['type'], text: string) => {
     setLogs(prev => [...prev, { id: uuidv4(), type, text, timestamp: Date.now() }]);
@@ -98,7 +165,8 @@ export default function Home() {
     localStorage.setItem('mikrus_port', port);
 
     setLoading(true);
-    addLog('info', `Inicjowanie bezpiecznego połączenia SSH (${authMethod})...`);
+    setInstallStatus('');
+    addLog('info', `[INIT] Starting secure connection sequence via ${authMethod}...`);
 
     try {
       const payload = { 
@@ -117,14 +185,14 @@ export default function Home() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Błąd połączenia');
+      if (!res.ok) throw new Error(data.error || 'Connection failed');
 
-      addLog('info', 'Połączenie SSH udane. Instalacja Agenta w toku...');
+      addLog('info', '[SUCCESS] SSH Tunnel established. Waiting for Agent handshake...');
       setPassword(''); 
       setPrivateKey(''); 
 
     } catch (err: any) {
-      addLog('error', err.message);
+      addLog('error', `[FAIL] ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -132,12 +200,12 @@ export default function Home() {
 
   const sendCommand = (cmd: string) => {
     if (!socket) return;
-    addLog('info', `> Wysyłanie komendy: ${cmd}`);
+    addLog('info', `> Executing command: ${cmd}`);
     socket.emit('send_command', { sessionId, command: cmd });
   };
 
   return (
-    <div className="min-h-screen relative font-sans p-4 md:p-8 selection:bg-emerald-500/30 overflow-hidden bg-slate-900 cursor-default">
+    <div className={`min-h-screen relative font-sans p-4 md:p-8 selection:bg-emerald-500/30 overflow-hidden bg-slate-900 cursor-default transition-all duration-300 ${systemShock ? 'scale-[1.01] brightness-125' : ''}`}>
       
       <CustomCursor />
 
@@ -168,7 +236,7 @@ export default function Home() {
             </div>
             <div className="h-8 w-px bg-current opacity-20 mx-1"></div>
             <div className="flex flex-col items-start leading-none min-w-[40px]">
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">Ping</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">Ping</span>
                 <span className="text-sm font-mono opacity-90">{agentStatus === 'online' ? `${ping}ms` : '--'}</span>
             </div>
             <div className="relative ml-1">
@@ -231,12 +299,11 @@ export default function Home() {
                     </div>
                     )}
 
-                    <button disabled={loading} type="submit" className="interactive-target w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 px-4 rounded-lg shadow-lg shadow-emerald-900/20 transition-all transform active:scale-[0.98] mt-2">
+                    <button disabled={loading} type="submit" className="interactive-target w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 px-4 rounded-lg shadow-lg shadow-emerald-900/20 transition-all transform active:scale-[0.98] mt-2 relative overflow-hidden">
                     {loading ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            Nawiązywanie połączenia...
-                        </span>
+                        <div className="flex items-center justify-center gap-2 animate-pulse">
+                            <span className="font-mono text-xs">{installStatus || LOADING_STEPS[loadingStep]}</span>
+                        </div>
                     ) : (
                         <span className="relative flex items-center justify-center gap-2">
                             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -254,6 +321,15 @@ export default function Home() {
                     </button>
                     </div>
 
+                    {showTechDetails && (
+                        <div className="mt-4 p-4 bg-slate-800 rounded-lg text-[11px] text-slate-300 border-l-2 border-emerald-600 animate-in slide-in-from-top-2 relative z-20 shadow-lg">
+                            <p className="mb-2">1. Twoja przeglądarka wysyła zaszyfrowane dane (SSL) do naszego Backendu.</p>
+                            <p className="mb-2">2. Backend nawiązuje <strong>jednorazowe</strong> połączenie SSH z Twoim serwerem.</p>
+                            <p className="mb-2">3. Instaluje lekkiego Agenta (Node.js) i natychmiast <strong>zapomina hasło</strong>.</p>
+                            <p>4. Agent łączy się zwrotnie przez WebSocket i czeka na Twoje polecenia.</p>
+                        </div>
+                    )}
+
                 </form>
                 </div>
             )}
@@ -265,9 +341,61 @@ export default function Home() {
                         <span className="flex items-center justify-center w-6 h-6 rounded bg-emerald-500/10 text-xs text-emerald-400">2</span>
                         Centrum Dowodzenia
                     </h2>
+                    
+                    {/* Database Selection & Installation */}
+                    <div className="mb-6 bg-[#0b0f19] p-4 rounded-xl border border-slate-800/50">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Baza Danych</span>
+                            <div className="flex bg-slate-800 rounded-lg p-1">
+                                <button 
+                                    onClick={() => setDbType('sqlite')}
+                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dbType === 'sqlite' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    SQLite (Lekka)
+                                </button>
+                                <button 
+                                    onClick={() => setDbType('postgres')}
+                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dbType === 'postgres' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    PostgreSQL (Pro)
+                                </button>
+                            </div>
+                        </div>
+
+                        {!showReinstallConfirm ? (
+                            <ActionButton 
+                                icon={isInstalled ? "⚠️" : "📦"} 
+                                title={isInstalled ? "Przeinstaluj n8n" : `Zainstaluj n8n (${dbType === 'sqlite' ? 'SQLite' : 'Postgres'})`}
+                                subtitle={isInstalled ? "Usunie obecną instancję!" : "Automatyczna konfiguracja Docker + Proxy"}
+                                variant={isInstalled ? 'danger' : 'default'}
+                                onClick={() => {
+                                    if (isInstalled) setShowReinstallConfirm(true);
+                                    else sendCommand(dbType === 'sqlite' ? 'INSTALL' : 'INSTALL_POSTGRES');
+                                }} 
+                            />
+                        ) : (
+                            <div className="animate-in fade-in zoom-in duration-200">
+                                <button 
+                                    onClick={() => {
+                                        sendCommand(dbType === 'sqlite' ? 'INSTALL' : 'INSTALL_POSTGRES');
+                                        setShowReinstallConfirm(false);
+                                    }}
+                                    className="w-full bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-xl font-bold text-sm hover:bg-red-900/40 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <span>☠️</span> Potwierdź Reinstalację (Utrata Danych!)
+                                </button>
+                                <button 
+                                    onClick={() => setShowReinstallConfirm(false)}
+                                    className="w-full text-center text-[10px] text-slate-500 mt-2 hover:text-white underline"
+                                >
+                                    Anuluj
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="grid gap-3">
-                        <ActionButton icon="🔍" title="Sprawdź Status n8n" onClick={() => sendCommand('STATUS')} />
-                        <ActionButton icon="📦" title="Zainstaluj n8n (SQLite)" onClick={() => sendCommand('INSTALL')} subtitle="Szybka instalacja, małe zużycie RAM" />
+                        <ActionButton icon="🔍" title="Sprawdź Status" onClick={() => sendCommand('STATUS')} />
                         <ActionButton icon="💾" title="Wykonaj Backup" onClick={() => sendCommand('BACKUP')} subtitle="Do /backup/n8n/" />
                         <ActionButton icon="⬆️" title="Aktualizuj n8n" onClick={() => sendCommand('UPDATE')} subtitle="Pobierz nowy obraz" />
                         <div className="h-px bg-slate-800 my-2"></div>

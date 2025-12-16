@@ -36,25 +36,45 @@ app.post('/api/connect-ssh', async (req, res) => {
 
     // Determine my own URL to tell the agent where to connect back
     // In dev: check env or guess. In prod: must be configured.
-    const serverUrl = process.env.PUBLIC_URL || `http://${req.hostname}:${process.env.PORT || 3001}`;
-
-    console.log(`[API] Initiating SSH connection for session ${sessionId}...`);
-
-    try {
-        await injectAgent({
-            host,
-            port: parseInt(port) || 22,
-            username,
-            password,
-            privateKey,
-            token: sessionId,
-            serverUrl
-        });
-        res.json({ success: true, message: 'Agent installed and started.' });
-    } catch (err) {
-        console.error('[API] SSH Injection Failed:', err);
-        res.status(500).json({ error: err.message });
+    // Determine Server URL (Agent Connect Back)
+    let serverUrl = process.env.PUBLIC_URL;
+    
+    if (!serverUrl) {
+        const hostHeader = req.get('host');
+        const protocol = (hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1')) ? 'http' : 'https';
+        serverUrl = `${protocol}://${hostHeader}`;
     }
+
+    console.log(`[API] Agent target: ${serverUrl}`);
+    // Notify frontend for debugging
+    io.to(sessionId).emit('install_progress', { message: `Konfiguracja Agenta: ${serverUrl}` });
+
+    // ASYNC EXECUTION (Fire & Forget to avoid HTTP Timeouts)
+    injectAgent({
+        host,
+        port: parseInt(port) || 22,
+        username,
+        password,
+        privateKey,
+        token: sessionId,
+        serverUrl,
+        onProgress: (msg) => {
+            io.to(sessionId).emit('install_progress', { message: msg });
+        }
+    })
+    .then(() => {
+        console.log(`[API] Agent injection successful for session ${sessionId}`);
+        // We don't need to emit a specific success event here because the Agent 
+        // will connect via WebSocket and trigger 'agent_status' -> 'online'.
+    })
+    .catch((err) => {
+        console.error('[API] SSH Injection Failed:', err);
+        io.to(sessionId).emit('command_output', { type: 'error', data: `[SSH Error] ${err.message}` });
+        // Also send a specific install error event if needed, but command_output logs it to terminal
+    });
+
+    // Return immediately so frontend doesn't timeout
+    res.json({ success: true, message: 'Installation process started in background.' });
 });
 
 // --- WEBSOCKET LOGIC ---
@@ -67,8 +87,13 @@ io.on('connection', (socket) => {
         console.log(`🤖 Agent connected for session: ${token}`);
         socket.join(token);
         
-        // Notify frontend
-        io.to(token).emit('agent_status', { status: 'online' });
+        // Store agent state in socket for later joining frontends
+        socket.data.isInstalled = false; // default
+
+        socket.on('agent_ready', (data) => {
+            socket.data.isInstalled = data.isInstalled;
+            io.to(token).emit('agent_status', { status: 'online', isInstalled: data.isInstalled });
+        });
 
         // Forward outputs from Agent to Frontend
         socket.on('command_output', (data) => {
@@ -100,7 +125,10 @@ io.on('connection', (socket) => {
                     const clientSocket = io.sockets.sockets.get(clientId);
                     if (clientSocket && clientSocket.handshake.auth.type === 'agent') {
                         // Found an agent! Tell the frontend.
-                        socket.emit('agent_status', { status: 'online' });
+                        socket.emit('agent_status', { 
+                            status: 'online',
+                            isInstalled: clientSocket.data.isInstalled
+                        });
                         break;
                     }
                 }
