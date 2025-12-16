@@ -18,10 +18,10 @@ export default function OfferPlaceholder({ onOpenGuide }: { onOpenGuide: () => v
                         className="interactive-target w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-emerald-500/50 text-white text-xs px-4 py-3 rounded-lg font-bold transition-all shadow-md hover:shadow-emerald-500/20 flex items-center justify-between group text-left"
                     >
                         <div className="flex items-center gap-3">
-                            <span className="text-xl">🎓</span>
+                            <span className="text-xl">🐧</span>
                             <div>
                                 <span className="block text-emerald-400">Mistrz Terminala & Mikrusa</span>
-                                <span className="text-[10px] text-slate-500 font-normal">Darmowy poradnik + Podstawy SSH</span>
+                                <span className="text-[10px] text-slate-500 font-normal">Darmowy poradnik: SSH, Klucze, Aliasy</span>
                             </div>
                         </div>
                         <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
@@ -33,7 +33,7 @@ export default function OfferPlaceholder({ onOpenGuide }: { onOpenGuide: () => v
                             <span className="text-xl">⚙️</span>
                             <div>
                                 <span className="block text-blue-400">Zaawansowana Administracja n8n</span>
-                                <span className="text-[10px] text-slate-500 font-normal">Kurs: Zewnętrzny Postgres, Backupy S3, Security</span>
+                                <span className="text-[10px] text-slate-500 font-normal">Kurs: Zewnętrzny Postgres, Backupy S3, Bezpieczeństwo</span>
                             </div>
                         </div>
                         <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>

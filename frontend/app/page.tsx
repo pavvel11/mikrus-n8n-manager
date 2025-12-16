@@ -347,7 +347,7 @@ export default function Home() {
                 <div className="mb-6 bg-purple-950/20 border border-purple-500/20 rounded-xl p-4 text-center">
                     <h3 className="text-purple-400 font-bold text-sm mb-2">Nie masz jeszcze serwera?</h3>
                     <p className="text-xs text-slate-300 mb-3 leading-relaxed opacity-90">
-                        Mikrus.pl to najtańsza opcja na własne n8n (bez limitów!). Instalacja zajmuje 3 minuty i z tym narzędziem jest bajecznie prosta.
+                        Mikrus.pl to najtańsza opcja na własne n8n (bez limitów workflow!).
                     </p>
                     <ul className="text-[10px] text-slate-400 mb-4 space-y-1 text-left inline-block">
                         <li className="flex gap-2"><span>🌱</span> <strong>Mikrus 2.1</strong> (1GB RAM) - Start (SQLite)</li>
@@ -363,7 +363,7 @@ export default function Home() {
                         </summary>
                         <div className="text-[10px] text-slate-400 mt-2 ml-4 space-y-1">
                             <p>To prosty mechanizm: kliknij w powyższy link (zawiera on specjalny identyfikator - tzw. reflink).</p>
-                            <p>Następnie wybierz swoją ofertę Mikrusa (dla n8n polecamy 2.1+, a najlepiej 3.0 lub 4.0).</p>
+                            <p>Następnie wybierz swoją ofertę Mikrusa (dla n8n polecamy 2.1+, 3.0 lub 3.5).</p>
                             <p>Miesiąc gratis zostanie <strong>automatycznie doliczony</strong> do Twojego zamówienia. Proste!</p>
                         </div>
                     </details>
@@ -374,7 +374,7 @@ export default function Home() {
                     <span className="text-lg">🛡️</span> Bezpieczeństwo
                     </h3>
                     <ul className="text-xs text-slate-400 space-y-2 list-none">
-                    <li className="flex gap-2 items-start"><div className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></div> <span>Twoje hasło <strong>nie jest nigdzie zapisywane</strong>. Używamy go tylko raz, a potem natychmiast zapominamy.</span></li>
+                    <li className="flex gap-2 items-start"><div className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></div> <span>Twoje hasło <strong>nie jest nigdzie zapisywane</strong>. Używamy go tylko raz, a potem natychmiast zapominamy. Po połączeniu możesz (i zalecamy!) natychmiast zmienić swoje hasło do serwera, logując się przez <button onClick={() => setShowTerminalGuide(true)} className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2 interactive-target font-bold">terminal</button> i wpisując komendę <code>passwd</code>.</span></li>
                     <li className="flex gap-2 items-center"><div className="w-1 h-1 rounded-full bg-emerald-500 flex-shrink-0"></div> Połączenie jest szyfrowane i jednorazowe.</li>
                     </ul>
                 </div>
@@ -640,8 +640,21 @@ export default function Home() {
                         </ul>
                     </div>
 
+                    <div className="bg-blue-950/20 border border-blue-500/20 p-4 rounded-lg">
+                        <h4 className="text-blue-400 font-bold mb-2 flex items-center gap-2">3. Diagnostyka AI (Analiza Logów)</h4>
+                        <p className="opacity-80 text-xs mb-3">
+                            Zanim zrestartujesz n8n, pobierz logi i wklej je do ChatGPT/Gemini z pytaniem "Co tu nie działa?".
+                        </p>
+                        <button 
+                            onClick={() => sendCommand('LOGS_N8N')}
+                            className="interactive-target bg-blue-900/20 border border-blue-500/30 text-blue-400 hover:bg-blue-900/40 px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
+                        >
+                            📄 Pobierz Logi n8n
+                        </button>
+                    </div>
+
                     <div className="bg-orange-950/20 border border-orange-500/20 p-4 rounded-lg">
-                        <h4 className="text-orange-400 font-bold mb-2 flex items-center gap-2">3. Kontenery w pętli restartów?</h4>
+                        <h4 className="text-orange-400 font-bold mb-2 flex items-center gap-2">4. Kontenery w pętli restartów?</h4>
                         <p className="opacity-80 text-xs mb-3">
                             Jeśli n8n nie wstaje (status Restarting), użyj tej opcji, aby <strong>wymusić usunięcie kontenerów i obrazów</strong>. Po tym musisz kliknąć "Przeinstaluj / Napraw" w panelu wyżej.
                         </p>
@@ -654,7 +667,7 @@ export default function Home() {
                     </div>
 
                     <div className="bg-red-950/20 border border-red-500/20 p-4 rounded-lg">
-                        <h4 className="text-red-400 font-bold mb-2 flex items-center gap-2">4. Opcja Atomowa: Czysty Start ☢️</h4>
+                        <h4 className="text-red-400 font-bold mb-2 flex items-center gap-2">5. Opcja Atomowa: Czysty Start ☢️</h4>
                         <p className="opacity-80 text-xs mb-3">
                             Jeśli instalacja została przerwana w połowie, pliki są uszkodzone, lub po prostu chcesz zacząć od zera:
                         </p>

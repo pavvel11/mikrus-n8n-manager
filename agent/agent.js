@@ -90,6 +90,10 @@ const COMMANDS = {
         cmd: '/bin/n8n_update',
         args: []
     },
+    'LOGS_N8N': {
+        cmd: 'docker',
+        args: ['logs', 'n8n']
+    },
     'RESTART': {
         cmd: 'docker',
         args: ['restart', 'n8n']
