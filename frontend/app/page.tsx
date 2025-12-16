@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, MouseEvent } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import confetti from 'canvas-confetti';
+import SnakeGame from './Snake';
 
 // Configuration
 const BACKEND_URL = ''; // Relative path for production
@@ -42,6 +43,12 @@ export default function Home() {
   const [dbType, setDbType] = useState<'sqlite' | 'postgres'>('sqlite');
   const [isInstalled, setIsInstalled] = useState(false);
   const [showReinstallConfirm, setShowReinstallConfirm] = useState(false);
+  const [showSnake, setShowSnake] = useState(false);
+  
+  // Command & Result State
+  const [isCommandRunning, setIsCommandRunning] = useState(false);
+  const [n8nUrl, setN8nUrl] = useState<string | null>(null);
+  const [backupAvailable, setBackupAvailable] = useState(false);
   
   // Form State
   const [host, setHost] = useState('');
@@ -53,6 +60,9 @@ export default function Home() {
 
   const terminalRef = useRef<HTMLDivElement>(null);
 
+  // Helper to strip ANSI codes
+  const stripAnsi = (str: string) => str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+
   useEffect(() => {
     let sid = localStorage.getItem('mikrus_session_id');
     if (!sid) {
@@ -61,10 +71,13 @@ export default function Home() {
     }
     setSessionId(sid);
 
+    // Load saved settings
     const savedHost = localStorage.getItem('mikrus_host');
     const savedPort = localStorage.getItem('mikrus_port');
+    const savedUrl = localStorage.getItem('n8n_url');
     if (savedHost) setHost(savedHost);
     if (savedPort) setPort(savedPort);
+    if (savedUrl) setN8nUrl(savedUrl);
 
     const newSocket = io(BACKEND_URL);
     setSocket(newSocket);
@@ -90,13 +103,64 @@ export default function Home() {
     });
 
     newSocket.on('command_output', (data: { type: string; data: string }) => {
-      addLog(data.type as any, data.data);
+      let cleanText = stripAnsi(data.data);
+      
+      // UX Improvements for specific messages
+      if (cleanText.trim() === 'true') {
+          cleanText = "✅ Usługa n8n jest aktywna i działa poprawnie.";
+      }
+      if (cleanText.includes("Backup N8N zakończony pomyślnie")) {
+          setBackupAvailable(true);
+          triggerSuccessEffect();
+      }
+
+      // Detect n8n URL from logs
+      const urlMatch = cleanText.match(/(https:\/\/[a-z0-9.-]+\.(wykr\.es|mikr\.us))/i);
+      if (urlMatch) {
+          const url = urlMatch[1];
+          setN8nUrl(url);
+          localStorage.setItem('n8n_url', url);
+          triggerSuccessEffect(); 
+      }
+
+      addLog(data.type as any, cleanText);
+    });
+
+    newSocket.on('file_download', (data: { filename: string, content: string }) => {
+        setIsCommandRunning(false); // Unlock UI
+        try {
+            // Convert base64 to blob
+            const byteCharacters = atob(data.content);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: "application/gzip" });
+            
+            // Trigger download
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            addLog('info', `Pobieranie pliku: ${data.filename}`);
+        } catch (e: any) {
+            addLog('error', `Błąd pobierania: ${e.message}`);
+        }
     });
     
     newSocket.on('command_done', (data: { exitCode: number }) => {
+      setIsCommandRunning(false);
       addLog('info', `Process finished with exit code ${data.exitCode}`);
+      
       if (data.exitCode === 0) {
           triggerMiniConfetti();
+          if (n8nUrl) setIsInstalled(true);
       }
     });
 
@@ -112,7 +176,7 @@ export default function Home() {
       clearInterval(pingInterval);
       newSocket.disconnect();
     };
-  }, [agentStatus]);
+  }, [agentStatus, isInstalled, n8nUrl]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -199,7 +263,10 @@ export default function Home() {
   };
 
   const sendCommand = (cmd: string) => {
-    if (!socket) return;
+    if (!socket || isCommandRunning) return;
+    
+    setIsCommandRunning(true);
+    setN8nUrl(null); // Reset URL on new command start
     addLog('info', `> Executing command: ${cmd}`);
     socket.emit('send_command', { sessionId, command: cmd });
   };
@@ -342,31 +409,41 @@ export default function Home() {
                         Centrum Dowodzenia
                     </h2>
                     
-                    {/* Database Selection & Installation */}
-                    <div className="mb-6 bg-[#0b0f19] p-4 rounded-xl border border-slate-800/50">
+                    {/* Success Card - Found URL */}
+                    {n8nUrl && (
+                        <div className="mb-6 p-4 bg-emerald-950/40 border border-emerald-500/50 rounded-xl animate-in zoom-in shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                            <h3 className="text-emerald-400 font-bold mb-2 flex items-center gap-2">🎉 Sukces! n8n gotowy!</h3>
+                            <p className="text-xs text-slate-300 mb-4">Twoja instancja została zainstalowana i jest dostępna.</p>
+                            <a href={n8nUrl} target="_blank" rel="noopener noreferrer" className="interactive-target block w-full text-center bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 rounded-lg shadow-lg transition-all transform hover:scale-[1.02]">
+                                🚀 Otwórz n8n Dashboard
+                            </a>
+                        </div>
+                    )}
+
+                    <div className={`mb-6 bg-[#0b0f19] p-4 rounded-xl border border-slate-800/50 ${isCommandRunning ? 'opacity-50 pointer-events-none grayscale transition-all duration-500' : ''}`}>
                         <div className="flex justify-between items-center mb-4">
                             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Baza Danych</span>
                             <div className="flex bg-slate-800 rounded-lg p-1">
                                 <button 
                                     onClick={() => setDbType('sqlite')}
-                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dbType === 'sqlite' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                    className={`interactive-target px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dbType === 'sqlite' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                                 >
-                                    SQLite (Lekka)
+                                    SQLite
                                 </button>
                                 <button 
                                     onClick={() => setDbType('postgres')}
-                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dbType === 'postgres' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                    className={`interactive-target px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dbType === 'postgres' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                                 >
-                                    PostgreSQL (Pro)
+                                    Postgres
                                 </button>
                             </div>
                         </div>
 
                         {!showReinstallConfirm ? (
                             <ActionButton 
-                                icon={isInstalled ? "⚠️" : "📦"} 
-                                title={isInstalled ? "Przeinstaluj n8n" : `Zainstaluj n8n (${dbType === 'sqlite' ? 'SQLite' : 'Postgres'})`}
-                                subtitle={isInstalled ? "Usunie obecną instancję!" : "Automatyczna konfiguracja Docker + Proxy"}
+                                icon={isInstalled ? "♻️" : "📦"} 
+                                title={isInstalled ? "Przeinstaluj / Napraw" : `Zainstaluj n8n (${dbType === 'sqlite' ? 'SQLite' : 'Postgres'})`}
+                                subtitle={isInstalled ? "Przebudowuje kontener (Dane bezpieczne)" : "Automatyczna konfiguracja"}
                                 variant={isInstalled ? 'danger' : 'default'}
                                 onClick={() => {
                                     if (isInstalled) setShowReinstallConfirm(true);
@@ -380,13 +457,13 @@ export default function Home() {
                                         sendCommand(dbType === 'sqlite' ? 'INSTALL' : 'INSTALL_POSTGRES');
                                         setShowReinstallConfirm(false);
                                     }}
-                                    className="w-full bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-xl font-bold text-sm hover:bg-red-900/40 transition-all flex items-center justify-center gap-2"
+                                    className="interactive-target w-full bg-yellow-900/20 border border-yellow-500/50 text-yellow-400 p-4 rounded-xl font-bold text-sm hover:bg-yellow-900/40 transition-all flex items-center justify-center gap-2"
                                 >
-                                    <span>☠️</span> Potwierdź Reinstalację (Utrata Danych!)
+                                    <span>🔄</span> Potwierdź Przeinstalowanie
                                 </button>
                                 <button 
                                     onClick={() => setShowReinstallConfirm(false)}
-                                    className="w-full text-center text-[10px] text-slate-500 mt-2 hover:text-white underline"
+                                    className="interactive-target w-full text-center text-[10px] text-slate-500 mt-2 hover:text-white underline"
                                 >
                                     Anuluj
                                 </button>
@@ -394,9 +471,14 @@ export default function Home() {
                         )}
                     </div>
 
-                    <div className="grid gap-3">
-                        <ActionButton icon="🔍" title="Sprawdź Status" onClick={() => sendCommand('STATUS')} />
-                        <ActionButton icon="💾" title="Wykonaj Backup" onClick={() => sendCommand('BACKUP')} subtitle="Do /backup/n8n/" />
+                    <div className={`grid gap-3 ${isCommandRunning ? 'opacity-50 pointer-events-none grayscale transition-all duration-500' : ''}`}>
+                        <ActionButton icon="🔍" title="Sprawdź Status n8n" onClick={() => sendCommand('STATUS')} />
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            <ActionButton icon="💾" title="Zrób Backup" onClick={() => sendCommand('BACKUP')} subtitle="Teraz" />
+                            <ActionButton icon="⬇️" title="Pobierz Backup" onClick={() => sendCommand('GET_BACKUP_FILE')} subtitle="Ostatni plik" />
+                        </div>
+
                         <ActionButton icon="⬆️" title="Aktualizuj n8n" onClick={() => sendCommand('UPDATE')} subtitle="Pobierz nowy obraz" />
                         <div className="h-px bg-slate-800 my-2"></div>
                         <ActionButton icon="🔄" title="Restart Kontenera" onClick={() => sendCommand('RESTART')} variant="danger" />
@@ -419,7 +501,14 @@ export default function Home() {
                             </div>
                             <span className="opacity-50">root@mikrus:~</span>
                         </div>
-                        <button onClick={() => setLogs([])} className="interactive-target hover:text-white transition opacity-60 hover:opacity-100">Clear</button>
+                        <div className="flex gap-2">
+                            {isCommandRunning && (
+                                <button onClick={() => setShowSnake(true)} className="interactive-target text-emerald-400 hover:text-emerald-300 transition text-[9px] border border-emerald-500/30 px-2 py-1 rounded bg-emerald-500/10 animate-pulse">
+                                    🎮 Czekasz? Zagraj
+                                </button>
+                            )}
+                            <button onClick={() => setLogs([])} className="interactive-target hover:text-white transition opacity-60 hover:opacity-100">Clear</button>
+                        </div>
                     </div>
 
                     {/* Terminal Body */}
@@ -446,6 +535,8 @@ export default function Home() {
             <p>Bezpieczny installer n8n dla Mikrus.pl • Created by Lazy Engineer</p>
             <p className="mt-2 text-emerald-500/80 hover:text-emerald-400 transition-colors"><a href={MIKRUS_REFLINK} target="_blank" className="interactive-target">Skorzystaj z reflinku Mikrus.pl i zyskaj 1 miesiąc gratis!</a></p>
         </footer>
+      
+        {showSnake && <SnakeGame onClose={() => setShowSnake(false)} />}
       </div>
     </div>
   );
@@ -509,6 +600,9 @@ function CustomCursor() {
 function LogLine({ log }: { log: LogEntry }) {
     const time = new Date(log.timestamp).toLocaleTimeString([], {hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit'});
     
+    // Strip ANSI codes
+    const cleanText = log.text.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+
     const formatText = (text: string) => {
         const parts = text.split(/(https?:\/\/[^\s]+)|(success|done|completed|installed|error|failed|fatal|warning|warn)/gi);
         
@@ -531,15 +625,22 @@ function LogLine({ log }: { log: LogEntry }) {
         });
     };
 
-    const typeColor = 
-        log.type === 'stderr' || log.type === 'error' ? 'text-red-400 border-l-2 border-red-900/50 pl-3' : 
-        log.type === 'info' ? 'text-blue-400' : 
-        'text-slate-300';
+    let typeColor = 'text-slate-300';
+    if (log.type === 'stderr' || log.type === 'error') {
+        const lower = cleanText.toLowerCase();
+        if (lower.includes('error') || lower.includes('fail') || lower.includes('fatal') || lower.includes('exception')) {
+            typeColor = 'text-red-400 border-l-2 border-red-900/50 pl-3';
+        } else {
+            typeColor = 'text-slate-400/70 italic'; // Dimmed for progress output
+        }
+    } else if (log.type === 'info') {
+        typeColor = 'text-blue-400';
+    }
 
     return (
         <div className={`log-entry break-words leading-relaxed ${typeColor}`}>
             <span className="opacity-20 mr-4 select-none text-[10px] font-mono">{time}</span>
-            <span>{formatText(log.text)}</span>
+            <span>{formatText(cleanText)}</span>
         </div>
     );
 }

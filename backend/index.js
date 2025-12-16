@@ -100,6 +100,10 @@ io.on('connection', (socket) => {
             io.to(token).emit('command_output', data);
         });
 
+        socket.on('file_download', (data) => {
+            io.to(token).emit('file_download', data);
+        });
+
         socket.on('command_done', (data) => {
             io.to(token).emit('command_done', data);
         });

@@ -2,20 +2,25 @@ const io = require('socket.io-client');
 const { spawn, exec } = require('child_process');
 const fs = require('fs');
 
-// --- ERROR HANDLING (CRITICAL FOR DEBUGGING AGENT CRASHES) ---
+// --- ERROR HANDLING --- 
 process.on('uncaughtException', (err) => {
-    fs.appendFileSync('agent.log', `\n[FATAL UNCAUGHT EXCEPTION]: ${err.stack || err.message}\n`);
+    try { fs.appendFileSync('agent.log', `\n[FATAL UNCAUGHT EXCEPTION]: ${err.stack || err.message}\n`); } catch(e){}
     console.error('[FATAL UNCAUGHT EXCEPTION]:', err.stack || err.message);
     process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    fs.appendFileSync('agent.log', `\n[FATAL UNHANDLED REJECTION]: ${reason}\n`);
+    try { fs.appendFileSync('agent.log', `\n[FATAL UNHANDLED REJECTION]: ${reason}\n`); } catch(e){}
     console.error('[FATAL UNHANDLED REJECTION]:', reason);
     process.exit(1);
 });
 
-// Configuration from Environment OR Config File
+// Helper to check installation state
+function checkInstallation() {
+    return fs.existsSync('/root/.n8n') || fs.existsSync('/root/.pg_n8n');
+}
+
+// Configuration
 let SERVER_URL = process.env.SERVER_URL;
 let TOKEN = process.env.AGENT_TOKEN;
 
@@ -32,52 +37,37 @@ if (!SERVER_URL || !TOKEN) {
     }
 }
 
-if (!SERVER_URL) {
-    fs.appendFileSync('agent.log', '\n❌ FATAL: SERVER_URL is missing.\n');
-    console.error('❌ FATAL: SERVER_URL is missing.');
+if (!SERVER_URL || !TOKEN) {
+    console.error('❌ FATAL: Config missing.');
     process.exit(1);
 }
 
-if (!TOKEN) {
-    fs.appendFileSync('agent.log', '\n❌ FATAL: AGENT_TOKEN is missing.\n');
-    console.error('❌ FATAL: AGENT_TOKEN is missing.');
-    process.exit(1);
-}
-
-fs.appendFileSync('agent.log', `\n[INIT] Agent starting. Connecting to ${SERVER_URL} with token ${TOKEN.substring(0, 5)}...\n`);
 console.log(`🔌 Agent starting. Connecting to ${SERVER_URL} with token ${TOKEN.substring(0, 5)}...`);
 
 const socket = io(SERVER_URL, {
     auth: { token: TOKEN, type: 'agent' },
     reconnection: true,
     reconnectionAttempts: 5,
-    timeout: 10000 // 10s connection timeout
+    timeout: 10000 
 });
 
 socket.on('connect', () => {
-    fs.appendFileSync('agent.log', '\n✅ Connected to Command Center.\n');
     console.log('✅ Connected to Command Center.');
-    
-    // Check if n8n is installed (simple directory check)
-    const isInstalled = fs.existsSync('/root/.n8n') || fs.existsSync('/root/.pg_n8n');
-    
-    socket.emit('agent_ready', { 
+    socket.emit('agent_ready', {
         platform: process.platform,
-        isInstalled
+        isInstalled: checkInstallation()
     });
 });
 
 socket.on('disconnect', (reason) => {
-    fs.appendFileSync('agent.log', `\n⚠️ Disconnected: ${reason}\n`);
     console.log(`⚠️ Disconnected: ${reason}`);
 });
 
 socket.on('connect_error', (err) => {
-    fs.appendFileSync('agent.log', `\n❌ Connection Error: ${err.message}\n`);
     console.error('❌ Connection Error:', err.message);
 });
 
-// --- WHITELISTED COMMANDS ---
+// --- WHITELISTED COMMANDS --- 
 const COMMANDS = {
     'STATUS': {
         cmd: 'docker',
@@ -108,11 +98,10 @@ const COMMANDS = {
     }
 };
 
-// --- EXECUTION ENGINE ---
+// --- EXECUTION ENGINE --- 
 socket.on('execute_command', async (payload) => {
     const { command, id } = payload;
     
-    fs.appendFileSync('agent.log', `\n[COMMAND] Received command: ${command} [${id}]\n`);
     console.log(`📥 Received command: ${command} [${id}]`);
 
     if (!COMMANDS[command]) {
@@ -123,8 +112,59 @@ socket.on('execute_command', async (payload) => {
 
     const def = COMMANDS[command];
 
-    if (def.special) {
-         // Placeholder for now
+    // Special Handling for File Download
+    if (command === 'GET_BACKUP_FILE') {
+        const backupDir = '/backup/n8n';
+        
+        fs.readdir(backupDir, (err, files) => {
+            if (err) {
+                const msg = `Error reading backup directory: ${err.message}`;
+                socket.emit('command_output', { id, type: 'error', data: msg });
+                socket.emit('command_done', { id, exitCode: 1 });
+                return;
+            }
+
+            // Filter .gz files
+            const backupFiles = files.filter(f => f.endsWith('.gz'));
+
+            if (backupFiles.length === 0) {
+                socket.emit('command_output', { id, type: 'error', data: 'Brak plików backupu (.gz) w katalogu /backup/n8n/' });
+                socket.emit('command_done', { id, exitCode: 1 });
+                return;
+            }
+
+            // Sort by mtime (newest first)
+            try {
+                const sortedFiles = backupFiles.map(fileName => {
+                    const stats = fs.statSync(`${backupDir}/${fileName}`);
+                    return { name: fileName, mtime: stats.mtime.getTime() };
+                }).sort((a, b) => b.mtime - a.mtime);
+
+                const latestFile = sortedFiles[0];
+                const fullPath = `${backupDir}/${latestFile.name}`;
+
+                fs.readFile(fullPath, (readErr, data) => {
+                    if (readErr) {
+                        socket.emit('command_output', { id, type: 'error', data: `Read error: ${readErr.message}` });
+                        socket.emit('command_done', { id, exitCode: 1 });
+                        return;
+                    }
+
+                    // Send file as base64
+                    socket.emit('file_download', {
+                        filename: latestFile.name, 
+                        content: data.toString('base64') 
+                    });
+                    
+                    socket.emit('command_output', { id, type: 'stdout', data: `Wysyłanie pliku: ${latestFile.name} (${(data.length / 1024).toFixed(2)} KB)` });
+                    socket.emit('command_done', { id, exitCode: 0 });
+                });
+
+            } catch (statErr) {
+                socket.emit('command_output', { id, type: 'error', data: `Stat error: ${statErr.message}` });
+                socket.emit('command_done', { id, exitCode: 1 });
+            }
+        });
         return;
     }
 
@@ -136,33 +176,32 @@ socket.on('execute_command', async (payload) => {
 
         child.stdout.on('data', (data) => {
             const text = data.toString();
-            fs.appendFileSync('agent.log', text);
-            process.stdout.write(text);
             socket.emit('command_output', { id, type: 'stdout', data: text });
         });
 
         child.stderr.on('data', (data) => {
             const text = data.toString();
-            fs.appendFileSync('agent.log', text);
-            process.stderr.write(text);
             socket.emit('command_output', { id, type: 'stderr', data: text });
         });
 
         child.on('close', (code) => {
-            fs.appendFileSync('agent.log', `\n🏁 Command ${command} finished with code ${code}\n`);
             console.log(`🏁 Command ${command} finished with code ${code}`);
             socket.emit('command_done', { id, exitCode: code });
+            
+            // Refresh installation status after any command
+            socket.emit('agent_ready', {
+                platform: process.platform,
+                isInstalled: checkInstallation()
+            });
         });
 
         child.on('error', (err) => {
-             fs.appendFileSync('agent.log', `\n❌ Spawn error: ${err.message}\n`);
              console.error(`❌ Spawn error: ${err.message}`);
              socket.emit('command_output', { id, type: 'error', data: err.message });
              socket.emit('command_done', { id, exitCode: 1 });
         });
 
     } catch (e) {
-        fs.appendFileSync('agent.log', `\n❌ Execution error: ${e.message}\n`);
         socket.emit('command_output', { id, type: 'error', data: e.message });
         socket.emit('command_done', { id, exitCode: 1 });
     }
