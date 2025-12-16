@@ -90,55 +90,60 @@ io.on('connection', (socket) => {
         // Store agent state in socket for later joining frontends
         socket.data.isInstalled = false; // default
 
-        socket.on('agent_ready', (data) => {
-            socket.data.isInstalled = data.isInstalled;
-            io.to(token).emit('agent_status', { status: 'online', isInstalled: data.isInstalled });
-        });
-
-        // Forward outputs from Agent to Frontend
-        socket.on('command_output', (data) => {
-            io.to(token).emit('command_output', data);
-        });
-
-        socket.on('file_download', (data) => {
-            io.to(token).emit('file_download', data);
-        });
-
-        socket.on('command_done', (data) => {
-            io.to(token).emit('command_done', data);
-        });
-
-        socket.on('disconnect', () => {
-            console.log(`🤖 Agent disconnected: ${token}`);
-            io.to(token).emit('agent_status', { status: 'offline' });
-        });
-
-    } else {
-        // --- FRONTEND CONNECTED ---
-        // Frontend sends 'join_session' event manually or via auth
-        // Let's assume frontend sends a specific join event
+                socket.on('agent_ready', (data) => {
+                    socket.data.isInstalled = data.isInstalled;
+                    socket.data.totalMemMb = data.totalMemMb;
+                    io.to(token).emit('agent_status', {
+                        status: 'online',
+                        isInstalled: data.isInstalled,
+                        totalMemMb: data.totalMemMb
+                    });
+                });
         
-        socket.on('join_session', (sessionId) => {
-            console.log(`🖥️ Frontend joined session: ${sessionId}`);
-            socket.join(sessionId);
-
-            // Check if Agent is already in this room
-            const room = io.sockets.adapter.rooms.get(sessionId);
-            if (room) {
-                for (const clientId of room) {
-                    const clientSocket = io.sockets.sockets.get(clientId);
-                    if (clientSocket && clientSocket.handshake.auth.type === 'agent') {
-                        // Found an agent! Tell the frontend.
-                        socket.emit('agent_status', { 
-                            status: 'online',
-                            isInstalled: clientSocket.data.isInstalled
-                        });
-                        break;
+                // Forward outputs from Agent to Frontend
+                socket.on('command_output', (data) => {
+                    io.to(token).emit('command_output', data);
+                });
+        
+                socket.on('file_download', (data) => {
+                    io.to(token).emit('file_download', data);
+                });
+        
+                socket.on('command_done', (data) => {
+                    io.to(token).emit('command_done', data);
+                });
+        
+                socket.on('disconnect', () => {
+                    console.log(`🤖 Agent disconnected: ${token}`);
+                    io.to(token).emit('agent_status', { status: 'offline' });
+                });
+        
+            } else {
+                // --- FRONTEND CONNECTED ---
+                // Frontend sends 'join_session' event manually or via auth
+                // Let's assume frontend sends a specific join event
+        
+                socket.on('join_session', (sessionId) => {
+                    console.log(`🖥️ Frontend joined session: ${sessionId}`);
+                    socket.join(sessionId);
+        
+                    // Check if Agent is already in this room
+                    const room = io.sockets.adapter.rooms.get(sessionId);
+                    if (room) {
+                        for (const clientId of room) {
+                            const clientSocket = io.sockets.sockets.get(clientId);
+                            if (clientSocket && clientSocket.handshake.auth.type === 'agent') {
+                                // Found an agent! Tell the frontend.
+                                socket.emit('agent_status', {
+                                    status: 'online',
+                                    isInstalled: clientSocket.data.isInstalled,
+                                    totalMemMb: clientSocket.data.totalMemMb
+                                });
+                                break;
+                            }
+                        }
                     }
-                }
-            }
-        });
-
+                });
         // Frontend sends command -> We relay to Agent in the room
         socket.on('send_command', (payload) => {
             const { sessionId, command } = payload;

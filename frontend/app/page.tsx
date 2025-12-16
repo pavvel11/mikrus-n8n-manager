@@ -38,6 +38,8 @@ export default function Home() {
   const [showTechDetails, setShowTechDetails] = useState(false);
   const [ping, setPing] = useState<number>(0);
   const [systemShock, setSystemShock] = useState(false);
+  const [serverMem, setServerMem] = useState<number>(0);
+  const [isAgentReadyForActions, setIsAgentReadyForActions] = useState(false);
   
   // New States for Enhanced UX
   const [dbType, setDbType] = useState<'sqlite' | 'postgres'>('sqlite');
@@ -86,7 +88,7 @@ export default function Home() {
       newSocket.emit('join_session', sid);
     });
 
-    newSocket.on('agent_status', (data: { status: 'online' | 'offline', isInstalled?: boolean }) => {
+    newSocket.on('agent_status', (data: { status: 'online' | 'offline', isInstalled?: boolean, totalMemMb?: number }) => {
       if (data.status === 'online' && agentStatus !== 'online') {
           triggerSuccessEffect();
       }
@@ -94,6 +96,11 @@ export default function Home() {
       if (data.isInstalled !== undefined) {
           setIsInstalled(data.isInstalled);
       }
+      if (data.totalMemMb !== undefined) {
+          setServerMem(data.totalMemMb);
+      }
+      // Only set ready for actions when we have full info
+      setIsAgentReadyForActions(data.status === 'online' && data.totalMemMb !== undefined);
       addLog('info', `STATUS UPDATE: Agent is ${data.status.toUpperCase()}`);
     });
 
@@ -271,6 +278,8 @@ export default function Home() {
     socket.emit('send_command', { sessionId, command: cmd });
   };
 
+  const isLowRam = serverMem > 0 && serverMem < 2000;
+
   return (
     <div className={`min-h-screen relative font-sans p-4 md:p-8 selection:bg-emerald-500/30 overflow-hidden bg-slate-900 cursor-default transition-all duration-300 ${systemShock ? 'scale-[1.01] brightness-125' : ''}`}>
       
@@ -329,7 +338,6 @@ export default function Home() {
                     <ul className="text-xs text-slate-400 space-y-2 list-none">
                     <li className="flex gap-2 items-center"><div className="w-1 h-1 rounded-full bg-emerald-500"></div> Hasło w RAM tylko przez 5 sekund.</li>
                     <li className="flex gap-2 items-center"><div className="w-1 h-1 rounded-full bg-emerald-500"></div> Połączenie SSH jest jednorazowe.</li>
-                    <li className="flex gap-2 items-center"><div className="w-1 h-1 rounded-full bg-emerald-500"></div> Brak zapisu haseł w bazie.</li>
                     </ul>
                 </div>
 
@@ -340,16 +348,16 @@ export default function Home() {
                 
                 <form onSubmit={handleConnectSSH} className="space-y-4">
                     <div>
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 pl-1">Host</label>
-                    <input required type="text" value={host} onChange={e => setHost(e.target.value)} placeholder="srvX.mikr.us" className="interactive-target w-full bg-[#0b0f19] border border-slate-700/50 rounded-lg p-3 text-sm text-slate-200 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-slate-700" />
+                    <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 pl-1">Serwer (Host)</label>
+                    <input required type="text" value={host} onChange={e => setHost(e.target.value)} placeholder="np. srvX.mikr.us" className="interactive-target w-full bg-[#0b0f19] border border-slate-700/50 rounded-lg p-3 text-sm text-slate-200 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-slate-700" />
                     </div>
                     <div className="flex gap-3">
                         <div className="w-1/3">
-                            <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 pl-1">Port</label>
-                            <input required type="text" value={port} onChange={e => setPort(e.target.value)} placeholder="22" className="interactive-target w-full bg-[#0b0f19] border border-slate-700/50 rounded-lg p-3 text-sm text-slate-200 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-slate-700" />
+                            <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 pl-1">Port SSH</label>
+                            <input required type="text" value={port} onChange={e => setPort(e.target.value)} placeholder="np. 22 lub 10107" className="interactive-target w-full bg-[#0b0f19] border border-slate-700/50 rounded-lg p-3 text-sm text-slate-200 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-slate-700" />
                         </div>
                         <div className="w-2/3">
-                            <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 pl-1">User</label>
+                            <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 pl-1">Login</label>
                             <input required type="text" value={username} onChange={e => setUsername(e.target.value)} className="interactive-target w-full bg-[#0b0f19] border border-slate-700/50 rounded-lg p-3 text-sm text-slate-200 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all" />
                         </div>
                     </div>
@@ -402,7 +410,13 @@ export default function Home() {
             )}
 
             {/* Action Panel */}
-            {agentStatus === 'online' && (
+            {agentStatus === 'online' && !isAgentReadyForActions && (
+                <div className="bg-slate-900/60 p-6 rounded-2xl border border-slate-800/60 shadow-xl animate-in fade-in duration-500 backdrop-blur-xl flex flex-col items-center justify-center h-[200px]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+                    <p className="text-slate-400 mt-4">Wczytywanie statusu serwera...</p>
+                </div>
+            )}
+            {isAgentReadyForActions && (
                 <div className="bg-slate-900/60 p-6 rounded-2xl border border-slate-800/60 shadow-xl animate-in slide-in-from-bottom-4 duration-500 backdrop-blur-xl">
                     <h2 className="text-lg font-bold mb-6 text-white flex items-center gap-2">
                         <span className="flex items-center justify-center w-6 h-6 rounded bg-emerald-500/10 text-xs text-emerald-400">2</span>
@@ -431,10 +445,19 @@ export default function Home() {
                                     SQLite
                                 </button>
                                 <button 
-                                    onClick={() => setDbType('postgres')}
-                                    className={`interactive-target px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dbType === 'postgres' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                    disabled={isLowRam}
+                                    onClick={() => !isLowRam && setDbType('postgres')}
+                                    title={isLowRam ? "Wymagane min. 2GB RAM" : "Zalecane dla produkcji"}
+                                    className={`interactive-target px-3 py-1 text-[10px] font-bold rounded-md transition-all flex items-center gap-1 ${
+                                        dbType === 'postgres' 
+                                            ? 'bg-blue-600 text-white shadow-lg' 
+                                            : isLowRam 
+                                                ? 'text-slate-600 cursor-not-allowed opacity-50' 
+                                                : 'text-slate-400 hover:text-white'
+                                    }`}
                                 >
                                     Postgres
+                                    {isLowRam && <span className="text-[8px] bg-red-900/50 text-red-400 px-1 rounded ml-1">RAM &lt; 2GB</span>}
                                 </button>
                             </div>
                         </div>
@@ -531,7 +554,70 @@ export default function Home() {
 
         </main>
 
-        <footer className="text-center text-slate-600/60 text-[10px] uppercase tracking-widest mt-16 pb-8">
+        {/* --- TROUBLESHOOTING FOOTER --- */}
+        <div className="max-w-4xl mx-auto mt-12 px-4 mb-4">
+            <details className="group bg-slate-900/40 border border-slate-800/60 rounded-xl overflow-hidden transition-all duration-300 hover:bg-slate-900/60">
+                <summary className="flex items-center justify-between p-4 cursor-pointer select-none text-xs uppercase tracking-widest font-bold text-slate-500 hover:text-emerald-400 transition-colors">
+                    <div className="flex items-center gap-2">
+                        <span>⚠️ Masz problemy? Przeczytaj instrukcję i Troubleshooting</span>
+                    </div>
+                    <span className="transform transition-transform group-open:rotate-180">▼</span>
+                </summary>
+                
+                <div className="p-6 border-t border-slate-800/60 text-slate-300 space-y-6 text-sm bg-black/20 animate-in slide-in-from-top-2">
+                    
+                    <div>
+                        <h4 className="text-emerald-400 font-bold mb-2 flex items-center gap-2">1. Jak się połączyć?</h4>
+                        <p className="opacity-80 mb-3">Użyj danych, które otrzymałeś w mailu od Mikrusa (lub znajdziesz w Panelu Klienta Mikrusa).</p>
+                        <ul className="list-disc list-inside space-y-1 ml-2 text-xs opacity-70 marker:text-emerald-500">
+                            <li><strong>Host:</strong> np. <code>srv20.mikr.us</code> lub Twoja domena.</li>
+                            <li><strong>Port:</strong> To <strong>NIE</strong> jest domyślny port 22! Sprawdź w mailu (np. 10107).</li>
+                            <li><strong>Login:</strong> Zazwyczaj <code>root</code>.</li>
+                            <li><strong>Hasło:</strong> Twoje hasło do SSH (nie do panelu Mikrusa!).</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 className="text-yellow-400 font-bold mb-2 flex items-center gap-2">2. Coś nie działa / Błąd połączenia</h4>
+                        <p className="opacity-80 mb-2">Jeśli aplikacja wisi na "Resolving Host" lub "Negotiating Handshake", upewnij się, że:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-2 text-xs opacity-70 marker:text-yellow-500">
+                            <li>Podałeś poprawny PORT.</li>
+                            <li>Twój serwer Mikrus jest włączony (sprawdź w panelu).</li>
+                            <li>Nie masz blokady IP (fail2ban) - spróbuj połączyć się z innego IP lub odczekaj.</li>
+                        </ul>
+                    </div>
+
+                    <div className="bg-orange-950/20 border border-orange-500/20 p-4 rounded-lg">
+                        <h4 className="text-orange-400 font-bold mb-2 flex items-center gap-2">3. Kontenery w pętli restartów?</h4>
+                        <p className="opacity-80 text-xs mb-3">
+                            Jeśli n8n nie wstaje (status Restarting), użyj tej opcji, aby <strong>wymusić usunięcie kontenerów i obrazów</strong>. Po tym musisz kliknąć "Przeinstaluj / Napraw" w panelu wyżej.
+                        </p>
+                        <button 
+                            onClick={() => sendCommand('FIX_DOCKER')}
+                            className="bg-orange-900/20 border border-orange-500/30 text-orange-400 hover:bg-orange-900/40 px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
+                        >
+                            🧹 Wyczyść Docker (Hard Reset)
+                        </button>
+                    </div>
+
+                    <div className="bg-red-950/20 border border-red-500/20 p-4 rounded-lg">
+                        <h4 className="text-red-400 font-bold mb-2 flex items-center gap-2">4. Opcja Atomowa: Czysty Start ☢️</h4>
+                        <p className="opacity-80 text-xs mb-3">
+                            Jeśli instalacja została przerwana w połowie, pliki są uszkodzone, lub po prostu chcesz zacząć od zera:
+                        </p>
+                        <ol className="list-decimal list-inside space-y-2 ml-2 text-xs opacity-90">
+                            <li>Zaloguj się do <strong>Panelu Klienta Mikrus</strong>.</li>
+                            <li>Znajdź opcję <strong>"Reinstalacja Systemu"</strong> (Wybierz Debian lub Ubuntu).</li>
+                            <li>To <strong>USUNIE WSZYSTKIE DANE</strong> z serwera i przywróci go do stanu fabrycznego.</li>
+                            <li>Po reinstalacji wróć tutaj i spróbuj połączyć się ponownie (używając nowego hasła, jeśli zostało zmienione).</li>
+                        </ol>
+                    </div>
+
+                </div>
+            </details>
+        </div>
+
+        <footer className="text-center text-slate-600/60 text-[10px] uppercase tracking-widest mt-8 pb-8">
             <p>Bezpieczny installer n8n dla Mikrus.pl • Created by Lazy Engineer</p>
             <p className="mt-2 text-emerald-500/80 hover:text-emerald-400 transition-colors"><a href={MIKRUS_REFLINK} target="_blank" className="interactive-target">Skorzystaj z reflinku Mikrus.pl i zyskaj 1 miesiąc gratis!</a></p>
         </footer>
@@ -542,7 +628,7 @@ export default function Home() {
   );
 }
 
-// --- CUSTOM CURSOR COMPONENT (Optimized) ---
+// ... (Rest of components: CustomCursor, LogLine, ActionButton remain unchanged) ...
 function CustomCursor() {
     const cursorRef = useRef<HTMLDivElement>(null);
     const [hovered, setHovered] = useState(false);

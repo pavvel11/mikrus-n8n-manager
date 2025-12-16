@@ -1,6 +1,7 @@
 const io = require('socket.io-client');
 const { spawn, exec } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 
 // --- ERROR HANDLING --- 
 process.on('uncaughtException', (err) => {
@@ -53,12 +54,12 @@ const socket = io(SERVER_URL, {
 
 socket.on('connect', () => {
     console.log('✅ Connected to Command Center.');
-    socket.emit('agent_ready', {
+    socket.emit('agent_ready', { 
         platform: process.platform,
-        isInstalled: checkInstallation()
+        isInstalled: checkInstallation(),
+        totalMemMb: Math.round(os.totalmem() / 1024 / 1024)
     });
 });
-
 socket.on('disconnect', (reason) => {
     console.log(`⚠️ Disconnected: ${reason}`);
 });
@@ -92,6 +93,10 @@ const COMMANDS = {
     'RESTART': {
         cmd: 'docker',
         args: ['restart', 'n8n']
+    },
+    'FIX_DOCKER': {
+        cmd: 'bash',
+        args: ['-c', 'echo "Restarting Docker Daemon..."; systemctl restart docker; sleep 5; echo "Killing containers..."; docker kill n8n || true; docker kill watchtower_n8n || true; echo "Removing containers..."; docker rm -f n8n || true; docker rm -f watchtower_n8n || true; echo "Removing images..."; docker rmi -f n8nio/n8n:latest containrrr/watchtower || true; docker system prune -f; echo "Fixing permissions..."; chown -R 1000:1000 /root/.n8n /root/.pg_n8n || true']
     },
     'GET_BACKUP_FILE': {
         special: true
@@ -188,13 +193,13 @@ socket.on('execute_command', async (payload) => {
             console.log(`🏁 Command ${command} finished with code ${code}`);
             socket.emit('command_done', { id, exitCode: code });
             
-            // Refresh installation status after any command
-            socket.emit('agent_ready', {
-                platform: process.platform,
-                isInstalled: checkInstallation()
-            });
-        });
-
+                        // Refresh installation status after any command
+                        socket.emit('agent_ready', { 
+                            platform: process.platform,
+                            isInstalled: checkInstallation(),
+                            totalMemMb: Math.round(os.totalmem() / 1024 / 1024)
+                        });
+                    });
         child.on('error', (err) => {
              console.error(`❌ Spawn error: ${err.message}`);
              socket.emit('command_output', { id, type: 'error', data: err.message });
