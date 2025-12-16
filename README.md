@@ -80,6 +80,30 @@ Otwórz `http://localhost:3001` w przeglądarce.
 Dla osób, które wolą terminal, gorąco zalecamy naukę SSH.
 Aplikacja zawiera wbudowany **Przewodnik Terminala**, który wygeneruje dla Ciebie skrypt konfiguracyjny.
 
+### 🪄 Skrypt `setup_mikrus.sh` - Twój przyjaciel w terminalu
+
+W repozytorium znajdziesz skrypt `setup_mikrus.sh`. To narzędzie, które "uzbraja" Twój terminal do pracy z Mikrusem.
+
+**Co robi ten skrypt?**
+1.  Pyta o dane do serwera (Host, Port, User).
+2.  Generuje bezpieczny klucz SSH (jeśli go nie masz).
+3.  Wysyła klucz publiczny na serwer (automatyczne logowanie).
+4.  Konfiguruje plik `~/.ssh/config`.
+
+**Dlaczego warto?**
+Zamiast wpisywać za każdym razem:
+`ssh root@srv20.mikr.us -p 10107` (i podawać hasło)
+
+Będziesz wpisywać po prostu:
+`ssh mikrus`
+
+**Jak użyć?**
+1.  Pobierz skrypt.
+2.  Nadaj uprawnienia: `chmod +x setup_mikrus.sh`
+3.  Uruchom: `./setup_mikrus.sh`
+
+Skrypt jest w 100% bezpieczny - używa standardowych mechanizmów SSH Twojego systemu. Nie instaluje żadnego dodatkowego oprogramowania.
+
 Możesz też uruchomić skrypt konfiguracji bezpośrednio z tego repozytorium:
 ```bash
 ./setup_mikrus.sh

@@ -694,7 +694,7 @@ export default function Home() {
         </div>
 
         <footer className="text-center text-slate-500 text-[10px] uppercase tracking-widest mt-12 pb-12">
-            <p className="opacity-70">Bezpieczny installer n8n dla Mikrus.pl • Created by Lazy Engineer</p>
+            <p className="opacity-70">Bezpieczny installer n8n dla Mikrus.pl • Created by Lazy Engineer • Vibecoded with Gemini ♊</p>
             <p className="mt-2 text-emerald-500 hover:text-emerald-400 transition-colors font-bold"><a href={MIKRUS_REFLINK} target="_blank" className="interactive-target">Skorzystaj z reflinku Mikrus.pl i zyskaj 1 miesiąc gratis!</a></p>
         </footer>
       
