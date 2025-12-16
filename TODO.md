@@ -43,4 +43,6 @@
 *   Ogromna wartość dla osób, które "przepłacają" za hosting.
 *   Automatyzuje skomplikowany proces przenoszenia kluczy szyfrowania n8n (bez których workflowy z credentials przestają działać).
 
+**Poziom trudności:** Wysoki (skomplikowany proces z wieloma zewnętrznymi systemami i potencjalnymi problemami z uprawnieniami).
+
 ---
