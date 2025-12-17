@@ -90,19 +90,26 @@ io.on('connection', (socket) => {
         // Store agent state in socket for later joining frontends
         socket.data.isInstalled = false; // default
 
-                socket.on('agent_ready', (data) => {
-                    socket.data.isInstalled = data.isInstalled;
-                    socket.data.totalMemMb = data.totalMemMb;
-                    io.to(token).emit('agent_status', {
-                        status: 'online',
-                        isInstalled: data.isInstalled,
-                        totalMemMb: data.totalMemMb
-                    });
-                });
-        
-                // Forward outputs from Agent to Frontend
-                socket.on('command_output', (data) => {
-                    io.to(token).emit('command_output', data);
+                        socket.on('agent_ready', (data) => {
+                            socket.data.isInstalled = data.isInstalled;
+                            socket.data.hasContainer = data.hasContainer; // Store container status
+                            socket.data.totalMemMb = data.totalMemMb;
+                            
+                            io.to(token).emit('agent_status', {
+                                status: 'online',
+                                isInstalled: data.isInstalled,
+                                hasContainer: data.hasContainer,
+                                totalMemMb: data.totalMemMb
+                            });
+                        });
+                
+                        // Forward heartbeat status from Agent to Frontend
+                        socket.on('agent_status', (data) => {
+                            io.to(token).emit('agent_status', data);
+                        });
+                
+                        // Forward outputs from Agent to Frontend
+                        socket.on('command_output', (data) => {                    io.to(token).emit('command_output', data);
                 });
         
                 socket.on('file_download', (data) => {

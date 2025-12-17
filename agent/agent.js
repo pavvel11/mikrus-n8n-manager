@@ -3,6 +3,8 @@ const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 
+let isConnected = false;
+
 // --- ERROR HANDLING --- 
 process.on('uncaughtException', (err) => {
     try { fs.appendFileSync('agent.log', `\n[FATAL UNCAUGHT EXCEPTION]: ${err.stack || err.message}\n`); } catch(e){}
@@ -18,8 +20,70 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Helper to check installation state
 function checkInstallation() {
-    return fs.existsSync('/root/.n8n') || fs.existsSync('/root/.pg_n8n');
+    const fs = require('fs');
+    const { execSync } = require('child_process');
+    
+    let isInstalled = false;
+    let hasContainer = false;
+
+    // 1. Check directories (Standard Manager install)
+    if (fs.existsSync('/root/.n8n') || fs.existsSync('/root/.pg_n8n')) {
+        isInstalled = true;
+    }
+
+    // 2. Check Docker containers (Manual/Legacy install)
+    try {
+        // Check if docker command exists first
+        const dockerCheck = execSync('command -v docker || true').toString().trim();
+        if (dockerCheck) {
+            const containers = execSync("docker ps -a --format '{{.Names}}'").toString();
+            if (containers.includes('n8n')) {
+                hasContainer = true;
+            }
+        }
+    } catch (e) {
+        // Docker not installed or permission error - ignore
+    }
+
+    console.log(`[checkInstallation] isInstalled: ${isInstalled}, hasContainer: ${hasContainer}`);
+    return { isInstalled, hasContainer };
 }
+
+// --- MAIN LOOP ---
+setInterval(() => {
+    if (!isConnected) return;
+
+    try {
+        // System Stats
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
+        const usedMem = totalMem - freeMem;
+        const load = os.loadavg()[0]; // 1 min load avg
+
+        // Format for dashboard
+        const memMb = Math.round(usedMem / 1024 / 1024);
+        const totalMemMb = Math.round(totalMem / 1024 / 1024);
+        
+        let installStatus = { isInstalled: false, hasContainer: false };
+        try {
+            installStatus = checkInstallation();
+        } catch (e) {
+            console.error('Error checking installation:', e.message);
+        }
+
+        socket.emit('agent_status', {
+            status: 'online',
+            ram: memMb,
+            totalMemMb: totalMemMb,
+            load: load.toFixed(2),
+            isInstalled: installStatus.isInstalled,
+            hasContainer: installStatus.hasContainer
+        });
+    } catch (err) {
+        console.error('Main loop error:', err);
+    }
+
+}, 2000);
 
 // Configuration
 let SERVER_URL = process.env.SERVER_URL;
@@ -53,14 +117,18 @@ const socket = io(SERVER_URL, {
 });
 
 socket.on('connect', () => {
+    isConnected = true;
     console.log('✅ Connected to Command Center.');
+    const status = checkInstallation();
     socket.emit('agent_ready', { 
         platform: process.platform,
-        isInstalled: checkInstallation(),
+        isInstalled: status.isInstalled,
+        hasContainer: status.hasContainer,
         totalMemMb: Math.round(os.totalmem() / 1024 / 1024)
     });
 });
 socket.on('disconnect', (reason) => {
+    isConnected = false;
     console.log(`⚠️ Disconnected: ${reason}`);
 });
 
@@ -198,9 +266,11 @@ socket.on('execute_command', async (payload) => {
             socket.emit('command_done', { id, exitCode: code });
             
                         // Refresh installation status after any command
+                        const status = checkInstallation();
                         socket.emit('agent_ready', { 
                             platform: process.platform,
-                            isInstalled: checkInstallation(),
+                            isInstalled: status.isInstalled,
+                            hasContainer: status.hasContainer,
                             totalMemMb: Math.round(os.totalmem() / 1024 / 1024)
                         });
                     });

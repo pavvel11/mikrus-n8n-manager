@@ -48,6 +48,7 @@ export default function Home() {
   // New States for Enhanced UX
   const [dbType, setDbType] = useState<'sqlite' | 'postgres'>('sqlite');
   const [isInstalled, setIsInstalled] = useState(false);
+  const [hasContainer, setHasContainer] = useState(false);
   const [showReinstallConfirm, setShowReinstallConfirm] = useState(false);
   const [showSnake, setShowSnake] = useState(false);
   
@@ -93,17 +94,19 @@ export default function Home() {
       newSocket.emit('join_session', sid);
     });
 
-    newSocket.on('agent_status', (data: { status: 'online' | 'offline', isInstalled?: boolean, totalMemMb?: number }) => {
+    newSocket.on('agent_status', (data: { status: 'online' | 'offline', isInstalled?: boolean, hasContainer?: boolean, totalMemMb?: number }) => {
       setAgentStatus(data.status);
       if (data.isInstalled !== undefined) {
           setIsInstalled(data.isInstalled);
+      }
+      if (data.hasContainer !== undefined) {
+          setHasContainer(data.hasContainer);
       }
       if (data.totalMemMb) {
           setServerMem(data.totalMemMb);
       }
       // Only set ready for actions when we have full info
       setIsAgentReadyForActions(data.status === 'online' && data.totalMemMb !== undefined);
-      addLog('info', `STATUS UPDATE: Agent is ${data.status.toUpperCase()}`);
     });
 
     newSocket.on('install_progress', (data: { message: string }) => {
@@ -509,6 +512,19 @@ export default function Home() {
                                 </button>
                             </div>
                         </div>
+
+                        {!isInstalled && hasContainer && (
+                            <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-lg animate-in fade-in slide-in-from-top-2">
+                                <h4 className="text-yellow-400 font-bold text-xs flex items-center gap-2 mb-1">
+                                    <span>⚠️</span> Wykryto konflikt (Ręczna instalacja?)
+                                </h4>
+                                <p className="text-[10px] text-yellow-200/80 leading-relaxed">
+                                    Na serwerze działa już kontener <code>n8n</code>, ale Manager nie widzi jego plików (brak standardowych katalogów). 
+                                    <br/>
+                                    <strong>Jeśli klikniesz "Zainstaluj", stara instancja może zostać nadpisana lub usunięta.</strong>
+                                </p>
+                            </div>
+                        )}
 
                         {!showReinstallConfirm ? (
                             <ActionButton 
