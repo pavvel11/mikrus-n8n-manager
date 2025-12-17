@@ -125,6 +125,40 @@ A: Nie. Aplikacja aktywnie blokuje tę opcję, aby uniknąć awarii serwera (OOM
 
 ---
 
+## 🧯 Utrzymanie i Awaria (VPS)
+
+Jeśli Manager przestanie działać, możesz nim zarządzać bezpośrednio z terminala (przez SSH). Aplikacja jest zarządzana przez proces menedżera **PM2**.
+
+1.  **Połącz się z serwerem:**
+    ```bash
+    ssh mikrus  # Jeśli użyłeś setup_mikrus.sh
+    # lub
+    ssh root@twoj-ip -p port
+    ```
+
+2.  **Sprawdź status:**
+    ```bash
+    pm2 status
+    ```
+
+3.  **Zrestartuj Managera:**
+    ```bash
+    pm2 restart n8n-manager
+    ```
+
+4.  **Sprawdź logi (jeśli coś nie działa):**
+    ```bash
+    pm2 logs n8n-manager --lines 50
+    ```
+
+5.  **Ręczne uruchomienie (jeśli proces zniknął):**
+    ```bash
+    cd scripts/js/app/backend
+    pm2 start index.js --name n8n-manager --node-args='--max-old-space-size=128'
+    ```
+
+---
+
 ## 📜 Licencja
 
 MIT License. Stworzone przez **Lazy Engineer**. Vibecoded with Gemini ♊.

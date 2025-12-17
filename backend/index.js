@@ -164,7 +164,7 @@ io.on('connection', (socket) => {
     }
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3030;
 
 // SPA Fallback: For any other request, send index.html
 // Using app.use() without a path acts as a catch-all for any request not handled above
