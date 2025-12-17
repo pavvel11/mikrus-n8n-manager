@@ -49,6 +49,9 @@ function checkInstallation() {
     return { isInstalled, hasContainer };
 }
 
+let lastCpuUsage = process.cpuUsage();
+let lastTime = Date.now();
+
 // --- MAIN LOOP ---
 setInterval(() => {
     if (!isConnected) return;
@@ -59,6 +62,21 @@ setInterval(() => {
         const freeMem = os.freemem();
         const usedMem = totalMem - freeMem;
         const load = os.loadavg()[0]; // 1 min load avg
+
+        // Agent Stats
+        const now = Date.now();
+        const timeDiff = now - lastTime;
+        const cpuDiff = process.cpuUsage(lastCpuUsage);
+        
+        lastTime = now;
+        lastCpuUsage = process.cpuUsage();
+
+        // CPU Usage in % (user + system) / time elapsed
+        // cpuDiff is in microseconds (10^-6), timeDiff is in milliseconds (10^-3)
+        // (microseconds / 1000) = milliseconds
+        const usedMs = (cpuDiff.user + cpuDiff.system) / 1000;
+        const agentCpuPercent = (usedMs / timeDiff) * 100;
+        const agentRamMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
 
         // Format for dashboard
         const memMb = Math.round(usedMem / 1024 / 1024);
@@ -77,7 +95,11 @@ setInterval(() => {
             totalMemMb: totalMemMb,
             load: load.toFixed(2),
             isInstalled: installStatus.isInstalled,
-            hasContainer: installStatus.hasContainer
+            hasContainer: installStatus.hasContainer,
+            agentStats: {
+                ram: agentRamMb,
+                cpu: agentCpuPercent.toFixed(2)
+            }
         });
     } catch (err) {
         console.error('Main loop error:', err);

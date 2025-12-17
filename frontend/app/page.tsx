@@ -8,6 +8,8 @@ import SnakeGame from './Snake';
 import TerminalGuide from './TerminalGuide';
 import OfferPlaceholder from './OfferPlaceholder';
 
+import ServerMonitor from './ServerMonitor';
+
 // Configuration
 const BACKEND_URL = ''; // Relative path for production
 const GITHUB_URL = 'https://github.com/pavvel11/mikrus-n8n-manager'; 
@@ -41,6 +43,9 @@ export default function Home() {
   const [ping, setPing] = useState<number>(0);
   const [systemShock, setSystemShock] = useState(false);
   const [serverMem, setServerMem] = useState<number>(0);
+  const [ramUsage, setRamUsage] = useState<number>(0);
+  const [loadAvg, setLoadAvg] = useState<number>(0);
+  const [agentStats, setAgentStats] = useState({ ram: 0, cpu: '0.00' });
   const [isAgentReadyForActions, setIsAgentReadyForActions] = useState(false);
   const [showTerminalGuide, setShowTerminalGuide] = useState(false);
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
@@ -94,7 +99,7 @@ export default function Home() {
       newSocket.emit('join_session', sid);
     });
 
-    newSocket.on('agent_status', (data: { status: 'online' | 'offline', isInstalled?: boolean, hasContainer?: boolean, totalMemMb?: number }) => {
+    newSocket.on('agent_status', (data: { status: 'online' | 'offline', isInstalled?: boolean, hasContainer?: boolean, totalMemMb?: number, ram?: number, load?: string, agentStats?: { ram: number, cpu: string } }) => {
       setAgentStatus(data.status);
       if (data.isInstalled !== undefined) {
           setIsInstalled(data.isInstalled);
@@ -104,6 +109,15 @@ export default function Home() {
       }
       if (data.totalMemMb) {
           setServerMem(data.totalMemMb);
+      }
+      if (data.ram) {
+          setRamUsage(data.ram);
+      }
+      if (data.load) {
+          setLoadAvg(parseFloat(data.load));
+      }
+      if (data.agentStats) {
+          setAgentStats(data.agentStats);
       }
       // Only set ready for actions when we have full info
       setIsAgentReadyForActions(data.status === 'online' && data.totalMemMb !== undefined);
@@ -476,7 +490,7 @@ export default function Home() {
                     
                     {/* Success Card - Found URL */}
                     {n8nUrl && (
-                        <div className="mb-6 p-4 bg-emerald-950/40 border border-emerald-500/50 rounded-xl animate-in zoom-in shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                        <div className="mb-6 mt-6 p-4 bg-emerald-950/40 border border-emerald-500/50 rounded-xl animate-in zoom-in shadow-[0_0_30px_rgba(16,185,129,0.2)]">
                             <h3 className="text-emerald-400 font-bold mb-2 flex items-center gap-2">🎉 Sukces! n8n gotowy!</h3>
                             <p className="text-xs text-slate-300 mb-4">Twoja instancja została zainstalowana i jest dostępna.</p>
                             <a href={n8nUrl} target="_blank" rel="noopener noreferrer" className="interactive-target block w-full text-center bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 rounded-lg shadow-lg transition-all transform hover:scale-[1.02]">
@@ -577,7 +591,15 @@ export default function Home() {
             </div>
 
             {/* RIGHT COLUMN: Terminal */}
-            <div className="lg:col-span-7 h-full min-h-[500px] flex flex-col">
+            <div className="lg:col-span-7 h-full min-h-[500px] flex flex-col gap-4">
+                
+                {/* Server Monitor (When Online) */}
+                {isAgentReadyForActions && (
+                    <div className="animate-in fade-in slide-in-from-top-4 duration-700">
+                        <ServerMonitor status={agentStatus} ramUsage={ramUsage} totalRam={serverMem} loadAvg={loadAvg} agentStats={agentStats} />
+                    </div>
+                )}
+
                 <div className="bg-black/80 rounded-2xl border border-slate-800/60 h-[650px] flex flex-col shadow-2xl overflow-hidden backdrop-blur-md">
                     
                     {/* Terminal Header */}
