@@ -3,38 +3,13 @@
 > **The easiest way to install and manage n8n on Mikrus VPS.**  
 > *Built by a Lazy Engineer for Lazy Engineers.*
 
-> *Built by a Lazy Engineer for Lazy Engineers.*
-
-**See the live application here:** [https://manager.cytr.us/](https://manager.cytr.us/)
+[![Polski](https://img.shields.io/badge/lang-Polski-blue.svg)](README.md)
 
 ## 📖 About
 
 **Mikrus n8n Manager** is a modern, GUI-based tool designed to simplify the deployment and management of [n8n](https://n8n.io) automation workflows on [Mikrus.pl](https://mikr.us) VPS instances.
 
-Running n8n on low-resource LXC containers (like Mikrus) can be tricky due to dependency hell (glibc versions), memory constraints, and Docker restart loops. This tool handles all edge cases automatically.
-
-### ✨ Key Features
-
-*   **1-Click Installation:** Automatically detects system resources and installs the appropriate n8n version (SQLite for <2GB RAM, Postgres for >2GB RAM).
-*   **Zero-Config Connection:** Connects via SSH using credentials from your Mikrus email. No manual terminal setup required.
-*   **Portable Agent Architecture:** Injects a self-contained Node.js environment (Portable Node) to the server, bypassing system package managers (`apt`/`apk`) failures.
-*   **Real-time Feedback:** See live logs from your server via WebSocket.
-*   **Safety & Ownership:** Your password/private key is used only once during the initial SSH connection and then immediately wiped from memory. After connecting, we recommend changing your server password using the `passwd` command in the terminal. The agent runs as a Systemd service.
-*   **Disaster Recovery:** Includes a "Hard Reset" (Nuclear Option) to unfreeze stuck Docker containers and fix permission errors automatically.
-*   **Backup Manager:** Create and download backups of your n8n workflows/credentials directly from the browser.
-
----
-
-## 🛠️ Architecture
-
-The application consists of three parts:
-
-1.  **Frontend (Next.js):** A beautiful, dark-themed UI with "Aurora" effects, terminal emulation, and real-time status updates via Socket.io.
-2.  **Backend (Node.js/Express):** Acts as a bridge. It accepts your credentials, establishes a secure SSH tunnel to your VPS, and deploys the Agent.
-3.  **The Agent (Node.js):** A lightweight script injected into your VPS. It runs locally on the server, executing Docker commands and streaming output back to the Frontend via WebSockets.
-
-**Why "Portable Node"?**
-Mikrus servers often run older Linux distributions. Installing modern Node.js (required for the Agent) via `apt` often fails. This project downloads a standalone, binary version of Node.js to `/root/mikrus-manager/runtime`, ensuring the Agent works on *any* Linux distro without touching system libraries.
+**See the live application here:** [https://manager.cytr.us/](https://manager.cytr.us/)
 
 ---
 
@@ -42,90 +17,39 @@ Mikrus servers often run older Linux distributions. Installing modern Node.js (r
 
 ### Prerequisites
 *   A VPS at [Mikrus.pl](https://mikr.us/?r=pavvel) (v2.1 or higher recommended).
-    *   🎁 **[Click here to get 1 month FREE with your purchase!](https://mikr.us/?r=pavvel)** (Choose offer 2.1+, 3.0 or 3.5).
 *   Your SSH credentials (Host, Port, User, Password).
 
-### Running Locally (Docker)
+### Running on Mikrus (PM2)
 
 ```bash
 # Clone the repository
-git clone https://github.com/pavvel11/mikrus-n8n-manager.git
-cd mikrus-n8n-manager
+git clone https://github.com/pavvel11/mikrus-n8n-manager.git /scripts/js/app
+cd /scripts/js/app
 
-# Install dependencies & Build
+# Build frontend
 cd frontend && npm install && npm run build
 cd ..
+
+# Install backend & Start
 cd backend && npm install
-
-# Start the server
-npm start
+pm2 start ../ecosystem.config.js
+pm2 save
 ```
 
-Open `http://localhost:3001` in your browser.
+Open `https://manager.cytr.us/` (or your IP at port 3030).
 
 ---
 
-## 🛡️ Security
+## 🧯 Maintenance (VPS)
 
-*   **Hot Potato Credentials:** Your password/private key is held in RAM only during the initial SSH handshake. Once the Agent is deployed, the credentials are wiped. The agent runs as a Systemd service.
-*   **Authorized Commands Only:** The Agent accepts only a strict whitelist of commands (`INSTALL`, `UPDATE`, `BACKUP`, `RESTART`, `FIX_DOCKER`). Arbitrary code execution is blocked.
-*   **Standard SSH:** All initial communication happens over standard, encrypted SSH channels.
+The application is managed by **PM2**.
 
----
-
-## 🎓 Expert Mode
-
-For those who prefer the terminal, we strongly recommend learning SSH.
-The application includes a built-in **Terminal Guide** that generates a configuration script for you.
-
-### 🪄 The `setup_mikrus.sh` Script - Your Terminal Best Friend
-
-Included in the repository is `setup_mikrus.sh`. This tool "arms" your terminal for working with Mikrus.
-
-**What does it do?**
-1.  Asks for your server details (Host, Port, User).
-2.  Generates a secure SSH key (if you don't have one).
-3.  Uploads the public key to the server (enabling automatic login).
-4.  Configures your `~/.ssh/config` file.
-
-**Why use it?**
-Instead of typing every time:
-`ssh root@srv20.mikr.us -p 10107` (and entering a password)
-
-You will simply type:
-`ssh mikrus`
-
-**How to use?**
-1.  Download the script.
-2.  Make it executable: `chmod +x setup_mikrus.sh`
-3.  Run: `./setup_mikrus.sh`
-
-The script is 100% safe - it uses standard SSH mechanisms built into your system. It does not install any third-party software.
-
-You can also run the setup script directly:
-```bash
-./setup_mikrus.sh
-```
-This will configure your `~/.ssh/config` so you can connect simply by typing `ssh mikrus`.
-
----
-
-## 🤝 Troubleshooting
-
-**Q: Installation hangs on "Resolving Host..."**
-A: Check if you are using the correct SSH Port (e.g., 10107, NOT 22).
-
-**Q: "EACCES: permission denied" in logs?**
-A: Use the **"Hard Reset (Fix Docker)"** button in the Troubleshooting section. This fixes ownership of the `.n8n` directory which Docker sometimes claims as root.
-
-**Q: Can I install Postgres on Mikrus 2.1?**
-A: No. The application actively prevents this to avoid crashing your server due to OOM (Out Of Memory). Upgrade to Mikrus 3.0+.
+1.  **Check status:** `pm2 status`
+2.  **Restart Manager:** `pm2 restart mikrus-manager`
+3.  **Check logs:** `pm2 logs mikrus-manager`
 
 ---
 
 ## 📜 License
 
 MIT License. Created by **Lazy Engineer**. Vibecoded with Gemini ♊.
-
-*Disclaimer: This is a community project. As this is a new tool, its use allows for simple and fast n8n management, and any errors will be corrected on an ongoing basis.
-*
