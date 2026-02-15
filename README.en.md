@@ -13,6 +13,16 @@
 
 ---
 
+## 🛠️ Architecture
+
+The application consists of three parts:
+
+1.  **Frontend (Next.js):** Beautiful dark interface with Aurora effect, terminal emulation, and real-time communication. Served statically by Backend.
+2.  **Backend (Node.js/Express):** The bridge. Accepts login credentials, establishes SSH tunnel to your VPS, and uploads the Agent.
+3.  **Agent (Node.js):** Lightweight script running on your server.
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
