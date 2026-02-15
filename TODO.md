@@ -2,6 +2,25 @@
 
 ## Przyszłe Funkcjonalności:
 
+### 🛍️ App Store (Integracja z Mikrus Toolbox)
+
+**Opis:** Rozszerzenie Managera o możliwość instalacji innych aplikacji (poza n8n) przy użyciu gotowych skryptów z repozytorium `mikrus-toolbox`. Przekształcenie Managera w panel typu "Cloudron" dla Mikrusa.
+
+**Zakres:**
+1.  **Repozytorium Skryptów:** Wykorzystanie `mikrus-toolbox` jako źródła instalatorów (Uptime Kuma, Typebot, Listmonk, Dockge).
+2.  **Frontend:** Nowa zakładka "Aplikacje" z kafelkami dostępnych usług.
+    *   Formularze konfiguracyjne dla każdej apki (np. podanie domeny, hasła do bazy).
+3.  **Backend:**
+    *   Mechanizm pobierania skryptów on-the-fly (`curl`).
+    *   Obsługa parametryzacji skryptów (przekazywanie flag `--domain` zamiast interaktywnego `read`).
+4.  **Agent:** Wykonywanie skryptów instalacyjnych Bash i raportowanie postępu.
+
+**Korzyści:**
+*   **Wartość:** Manager staje się kompletnym centrum sterowania firmą, nie tylko n8n.
+*   **Łatwość:** Użytkownik dostaje analitykę (Umami), marketing (Listmonk) i monitoring (Kuma) "z pudełka".
+
+**Poziom trudności:** Średni (wymaga dostosowania skryptów Bash do przyjmowania argumentów).
+
 ### 💡 Obsługa instalacji z Docker Compose (Zamiast skryptów Mikrusa)
 
 **Opis:** Zamiast opierać się na dedykowanych skryptach Mikrusa (`n8n_install`, `n8n_install_postgres`), wprowadzić mechanizm generowania i uruchamiania pliku `docker-compose.yml`.

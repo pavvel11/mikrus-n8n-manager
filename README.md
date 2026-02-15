@@ -62,6 +62,44 @@ Aplikacja jest zarządzana przez **PM2**.
 
 ---
 
+## 🎓 Tryb Eksperta
+
+Dla osób, które wolą terminal, gorąco zalecamy naukę SSH.
+Aplikacja zawiera wbudowany **Przewodnik Terminala**, który wygeneruje dla Ciebie skrypt konfiguracyjny.
+
+### 🪄 Konfiguracja SSH - Twój przyjaciel w terminalu
+
+Skonfiguruj połączenie SSH jedną komendą:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/pavvel11/mikrus-toolbox/main/local/setup-ssh.sh)
+```
+
+**Co robi ten skrypt?**
+1.  Pyta o dane do serwera (Host, Port, User).
+2.  Generuje bezpieczny klucz SSH (jeśli go nie masz).
+3.  Wysyła klucz publiczny na serwer (automatyczne logowanie).
+4.  Konfiguruje plik `~/.ssh/config`.
+
+**Efekt:** zamiast `ssh root@srv20.mikr.us -p 10107` (+ hasło) wpisujesz po prostu `ssh mikrus`.
+
+Skrypt jest w 100% bezpieczny - używa standardowych mechanizmów SSH Twojego systemu.
+
+---
+
+## 🤝 Rozwiązywanie Problemów
+
+**Q: Instalacja wisi na "Resolving Host..."**
+A: Sprawdź, czy wpisałeś poprawny Port SSH (np. 10107, a NIE 22). To najczęstszy błąd.
+
+**Q: Widzę błąd "EACCES: permission denied" w logach?**
+A: Użyj przycisku **"Wyczyść Docker (Hard Reset)"** w sekcji Troubleshooting na dole strony. Naprawi to uprawnienia do katalogu `.n8n`.
+
+**Q: Czy mogę zainstalować Postgres na Mikrusie 2.1 (1GB RAM)?**
+A: Nie. Aplikacja aktywnie blokuje tę opcję, aby uniknąć awarii serwera (OOM - Out Of Memory). Zaktualizuj Mikrusa do wersji 3.0+.
+
+---
+
 ## 📜 Licencja
 
 MIT License. Stworzone przez **Lazy Engineer**. Vibecoded with Gemini ♊.

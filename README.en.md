@@ -50,6 +50,44 @@ The application is managed by **PM2**.
 
 ---
 
+## 🎓 Expert Mode
+
+For those who prefer the terminal, we strongly recommend learning SSH.
+The application includes a built-in **Terminal Guide** that generates a configuration script for you.
+
+### 🪄 SSH Setup - Your Terminal Best Friend
+
+Configure SSH connection with a single command:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/pavvel11/mikrus-toolbox/main/local/setup-ssh.sh)
+```
+
+**What does it do?**
+1.  Asks for your server details (Host, Port, User).
+2.  Generates a secure SSH key (if you don't have one).
+3.  Uploads the public key to the server (enabling automatic login).
+4.  Configures your `~/.ssh/config` file.
+
+**Result:** instead of `ssh root@srv20.mikr.us -p 10107` (+ password) you just type `ssh mikrus`.
+
+The script is 100% safe - it uses standard SSH mechanisms built into your system.
+
+---
+
+## 🤝 Troubleshooting
+
+**Q: Installation hangs on "Resolving Host..."**
+A: Check if you are using the correct SSH Port (e.g., 10107, NOT 22).
+
+**Q: "EACCES: permission denied" in logs?**
+A: Use the **"Hard Reset (Fix Docker)"** button in the Troubleshooting section. This fixes ownership of the `.n8n` directory which Docker sometimes claims as root.
+
+**Q: Can I install Postgres on Mikrus 2.1?**
+A: No. The application actively prevents this to avoid crashing your server due to OOM (Out Of Memory). Upgrade to Mikrus 3.0+.
+
+---
+
 ## 📜 License
 
 MIT License. Created by **Lazy Engineer**. Vibecoded with Gemini ♊.
