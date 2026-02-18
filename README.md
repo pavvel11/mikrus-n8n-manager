@@ -7,7 +7,7 @@
 
 ## 📖 O projekcie
 
-**Mikrus n8n Manager** to nowoczesne narzędzie z interfejsem graficznym (GUI), które upraszcza instalację i obsługę [n8n](https://n8n.io) na serwerach VPS [Mikrus.pl](https://mikr.us).
+**Mikrus n8n Manager** to nowoczesne narzędzie z interfejsem graficznym (GUI), które upraszcza instalację i obsługę [n8n](https://n8n.io) na serwerach VPS [Mikrus.pl](https://mikr.us/?r=pavvel).
 
 **Zobacz działającą aplikację tutaj:** [https://manager.cytr.us/](https://manager.cytr.us/)
 
@@ -35,7 +35,7 @@ Aplikacja składa się z trzech części:
 
 ```bash
 # Sklonuj repozytorium
-git clone https://github.com/pavvel11/mikrus-n8n-manager.git /scripts/js/app
+git clone https://github.com/jurczykpawel/mikrus-n8n-manager.git /scripts/js/app
 cd /scripts/js/app
 
 # Zbuduj frontend
@@ -72,7 +72,7 @@ Aplikacja zawiera wbudowany **Przewodnik Terminala**, który wygeneruje dla Cieb
 Skonfiguruj połączenie SSH jedną komendą:
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/pavvel11/mikrus-toolbox/main/local/setup-ssh.sh)
+bash <(curl -s https://raw.githubusercontent.com/jurczykpawel/mikrus-toolbox/main/local/setup-ssh.sh)
 ```
 
 **Co robi ten skrypt?**

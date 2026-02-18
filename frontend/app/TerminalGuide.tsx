@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 
-const SETUP_CMD_BASH = 'bash <(curl -s https://raw.githubusercontent.com/pavvel11/mikrus-toolbox/main/local/setup-ssh.sh)';
-const SETUP_CMD_PS1 = 'iwr -useb https://raw.githubusercontent.com/pavvel11/mikrus-toolbox/main/local/setup-ssh.ps1 | iex';
+const SETUP_CMD_BASH = 'bash <(curl -s https://raw.githubusercontent.com/jurczykpawel/mikrus-toolbox/main/local/setup-ssh.sh)';
+const SETUP_CMD_PS1 = 'iwr -useb https://raw.githubusercontent.com/jurczykpawel/mikrus-toolbox/main/local/setup-ssh.ps1 | iex';
 
 export default function TerminalGuide({ onClose }: { onClose: () => void }) {
     const [activeTab, setActiveTab] = useState<'mac' | 'windows'>('mac');

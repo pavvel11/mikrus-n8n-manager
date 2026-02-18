@@ -12,7 +12,7 @@ import ServerMonitor from './ServerMonitor';
 
 // Configuration
 const BACKEND_URL = ''; // Relative path for production
-const GITHUB_URL = 'https://github.com/pavvel11/mikrus-n8n-manager'; 
+const GITHUB_URL = 'https://github.com/jurczykpawel/mikrus-n8n-manager'; 
 const MIKRUS_REFLINK = 'https://mikr.us/?r=pavvel';
 
 type LogEntry = {
