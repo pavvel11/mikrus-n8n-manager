@@ -1,8 +1,6 @@
 # 🚀 Mikrus n8n Manager
 
 > **Najprostszy sposób na instalację i zarządzanie n8n na Mikrus VPS.**  
-> *Stworzone przez Lazy Engineera dla Lazy Engineerów.*
-
 [![English Version](https://img.shields.io/badge/lang-English-red.svg)](README.en.md)
 
 ## 📖 O projekcie
@@ -99,6 +97,13 @@ A: Użyj przycisku **"Wyczyść Docker (Hard Reset)"** w sekcji Troubleshooting 
 A: Nie. Aplikacja aktywnie blokuje tę opcję, aby uniknąć awarii serwera (OOM - Out Of Memory). Zaktualizuj Mikrusa do wersji 3.0+.
 
 ---
+
+## 🍺 Wsparcie
+
+Manager jest darmowy. Jeśli Twój n8n działa dzięki niemu i oszczędza Ci godziny
+ręcznej konfiguracji — możesz postawić mi piwo:
+
+[![🍺 Postaw mi piwo](https://img.shields.io/badge/🍺_Postaw_mi_piwo-FFDD00)](https://sellf.techskills.academy/checkout/tip-mikrus-n8n-manager?utm_source=github&utm_medium=readme&utm_campaign=tip-jar)
 
 ## 📜 Licencja
 
